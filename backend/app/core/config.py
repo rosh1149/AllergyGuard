@@ -26,6 +26,13 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     llm_model: str = ""
 
+    # Packaged-food pipeline
+    off_base_url: str = "https://world.openfoodfacts.org"
+    off_user_agent: str = "AllergyGuard/0.1 (allergen information app)"
+    off_timeout_seconds: float = 8.0
+    max_upload_mb: int = 10
+    tesseract_cmd: str = ""  # empty = use `tesseract` on PATH
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

@@ -11,7 +11,7 @@ import json
 import logging
 import re
 
-from app.core.config import get_settings
+from app.core.llm import FALLBACK_BETA, get_client, model_name
 from app.engine.types import AnalysisResult, Outcome
 
 log = logging.getLogger(__name__)
@@ -99,24 +99,18 @@ def _acceptable(text: str, result: AnalysisResult) -> bool:
 
 
 def llm_explanation(result: AnalysisResult) -> str | None:
-    settings = get_settings()
-    if not settings.anthropic_api_key:
+    client = get_client()
+    if client is None:
         return None
-    try:
-        import anthropic
-    except ImportError:
-        return None
+    import anthropic
 
-    client = anthropic.Anthropic(api_key=settings.anthropic_api_key, timeout=30.0, max_retries=1)
     try:
         response = client.beta.messages.create(
-            model=settings.llm_model or "claude-opus-5-5",
+            model=model_name(),
             max_tokens=4000,
             system=_SYSTEM_PROMPT,
             output_config={"effort": "low"},
-            # Server-side fallback: if the request is declined by a safety classifier, the API
-            # retries it on a suitable fallback model within the same call.
-            betas=["server-side-fallback-2026-07-01"],
+            betas=[FALLBACK_BETA],
             fallbacks="default",
             messages=[{"role": "user", "content": _llm_payload(result)}],
         )

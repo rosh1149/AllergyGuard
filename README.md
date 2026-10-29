@@ -9,7 +9,7 @@ evidence and uncertainty; it never certifies food as safe.
 |---|---|---|
 | 1 | Foundation: FastAPI, PostgreSQL schema, auth & roles, tenant isolation, allergen knowledge base | Done |
 | 2 | Shared allergen analysis engine | Done |
-| 3 | Packaged-food pipeline | Planned |
+| 3 | Packaged-food pipeline | Done |
 | 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Planned |
 | 5 | React + TypeScript frontend | Planned |
 
@@ -23,6 +23,8 @@ docker compose up --build
 API docs: http://localhost:8000/docs
 
 ### Without Docker
+
+Needs Tesseract OCR installed (`apt install tesseract-ocr` / `brew install tesseract`).
 
 ```bash
 cd backend
@@ -101,6 +103,32 @@ allergens first, other allergens found listed separately).
 structured result only. Its output is rejected, and the template used instead, if it omits one of the
 user's allergens or makes a safety claim ("safe to eat", "allergen-free", "no risk", ...).
 
+## Packaged-food pipeline (Part 3)
+
+`POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,
+and/or a `product_name`. The customer's saved allergies are applied automatically.
+
+1. **Image checks** - JPEG/PNG/WebP, size limit (`MAX_UPLOAD_MB`), EXIF rotation; resolution, blur,
+   darkness and low-contrast issues are reported as limitations.
+2. **Barcode** - EAN/UPC read from the photos (zxing-cpp) or typed in; check digit validated.
+3. **Label OCR** - Tesseract reads each photo; the ingredient statement is cut out between the
+   "Ingredients" heading and the next section (nutrition, storage, best before, ...), keeping any
+   "may contain" advice. Without a heading the text is used for presence only (not complete).
+4. **Identification** - barcode lookup in Open Food Facts (confidence 0.95); otherwise Claude vision
+   reads brand/name/variant from the photos (if `ANTHROPIC_API_KEY` is set) or the typed product
+   name is used, then Open Food Facts search picks the closest match (confidence = recognition
+   confidence x name similarity). Below 0.7 the database data is treated as a possible match only.
+5. **Evidence -> shared engine** - label text (`label_ocr`) and the database entry
+   (`product_database`: ingredients, allergen tags, trace tags as cross-contact) go to the engine,
+   which compares them, flags disagreements, and produces the result.
+
+The response contains the engine result plus the identified product, the label text that was read,
+per-photo quality metrics and a step-by-step status list. If Open Food Facts can't be reached, the
+label photo is still analysed and the limitation is shown.
+
+Not implemented: scraping manufacturer websites (unreliable to do generically; Open Food Facts
+links to the product page instead).
+
 ## API
 
 | Method | Path | Who |
@@ -113,6 +141,7 @@ user's allergens or makes a safety claim ("safe to eat", "allergen-free", "no ri
 | GET | `/api/auth/me` | logged in |
 | GET / PUT | `/api/me/allergy-profile` | customer |
 | GET | `/api/restaurants/{restaurant_id}` | restaurant member |
+| POST | `/api/analyze/packaged` | customer: photos / barcode / product name |
 | POST | `/api/analyze/text` | customer: check a typed-in ingredient list against their saved allergies |
 
 ## Layout
@@ -124,6 +153,7 @@ backend/app/
   models/     SQLAlchemy models (users, allergens, restaurants, recipes, feedback, audit)
   schemas/    request/response models
   services/   business logic
+  packaged/   packaged-food pipeline (image checks, barcode, OCR, Open Food Facts, vision)
   engine/     shared allergen analysis engine (text parsing, knowledge-base matching, rules, explanation)
   api/        dependencies (auth, tenant access) and routes
   seed/       allergen knowledge base (14 allergens, synonyms, exclusions) and demo data

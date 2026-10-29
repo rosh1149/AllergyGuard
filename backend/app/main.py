@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
-from app.api.routes import allergens, analyze, auth, profile, restaurants
+from app.api.routes import allergens, analyze, auth, packaged, profile, restaurants
 from app.core.config import get_settings
 from app.db.init_db import init_db
 from app.db.session import engine
@@ -35,6 +35,7 @@ app.include_router(profile.router, prefix=API)
 app.include_router(allergens.router, prefix=API)
 app.include_router(restaurants.router, prefix=API)
 app.include_router(analyze.router, prefix=API)
+app.include_router(packaged.router, prefix=API)
 
 
 @app.get(f"{API}/health", tags=["health"])
