@@ -10,7 +10,7 @@ evidence and uncertainty; it never certifies food as safe.
 | 1 | Foundation: FastAPI, PostgreSQL schema, auth & roles, tenant isolation, allergen knowledge base | Done |
 | 2 | Shared allergen analysis engine | Done |
 | 3 | Packaged-food pipeline | Done |
-| 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Planned |
+| 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Done |
 | 5 | React + TypeScript frontend | Planned |
 
 ## Run
@@ -129,6 +129,64 @@ label photo is still analysed and the limitation is shown.
 Not implemented: scraping manufacturer websites (unreliable to do generically; Open Food Facts
 links to the product page instead).
 
+## Restaurant pipeline, feedback and dashboard (Part 4)
+
+### Customer: checking a restaurant dish
+
+`POST /api/analyze/restaurant` (multipart). Registered restaurant: `restaurant_id` (+ `branch_id`
+when it has several branches) and a dish photo, `dish_name` or `menu_item_id`. Unregistered:
+`restaurant_name` (+ `location`) and a dish name or photo.
+
+1. **Dish matching** against the branch's available menu:
+   - picked from the menu -> confidence 1.0
+   - typed dish name -> fuzzy name similarity
+   - photo -> Claude vision picks a menu item (needs `ANTHROPIC_API_KEY`); **a photo alone is capped
+     at 0.6**, below the 0.7 trust threshold, because a photo isn't proof of the recipe
+   - name and photo agree -> boosted
+   The top candidates are returned so the app can ask the customer to confirm the dish.
+2. **Branch records** for the matched dish's current recipe version (ingredients, allergen records,
+   cross-contact) -> engine as `restaurant_verified` or `restaurant_unverified`.
+3. **Unreviewed customer reports** for the dish -> engine as `customer_suggestion` (candidate only:
+   they can turn "not listed" into "unknown"/"possible cross-contact", never into "present").
+4. **Fallback** (unregistered restaurant, or dish not on the menu): Claude searches public recipes
+   (web search, needs `ANTHROPIC_API_KEY`) -> `public_recipe` candidates with source links. Never
+   saved, never PRESENT or NOT LISTED.
+5. **Questions for staff** - a deterministic checklist built from the result, naming common hidden
+   sources (e.g. milk: butter, ghee, cream...).
+
+Customer directory: `GET /api/public/restaurants?q=` and
+`GET /api/public/restaurants/{id}/branches/{branch_id}/menu` (names only; recipes stay private).
+
+### Feedback and verification
+
+- `POST /api/feedback` - customer suggestion (`missing_ingredient`, `incorrect_ingredient`,
+  `missing_allergen`, `cross_contact`, `other`). Stored as **unverified**; trusted records unchanged.
+  Duplicate pending suggestions are rejected. `GET /api/me/feedback` shows the outcome.
+- `POST /api/restaurants/{id}/feedback/{fid}/decision` (owner/manager):
+  - **confirmed** -> a new **verified** recipe version with the change applied (added ingredient
+    gets allergen codes from the knowledge base), linked from the suggestion, audited
+  - **rejected** -> nothing changes, audited
+  - no response -> stays unverified
+  Removing an ingredient that isn't in the recipe must be done by editing the recipe directly.
+
+### Dashboard API (`/api/restaurants/{restaurant_id}/...`)
+
+| Area | Endpoints | Role |
+|---|---|---|
+| Overview | `GET ""` (counts: menu items, unverified recipes, pending feedback, team) | any member |
+| Settings | `PATCH ""` | owner |
+| Branches | `GET/POST /branches`, `PATCH /branches/{id}` (deactivate with `is_active: false`) | owner (read: any) |
+| Team | `GET/POST /team`, `PATCH/DELETE /team/{user_id}`; last owner can't be removed/demoted | owner (read: any) |
+| Menu | `GET /menu?branch_id=&status=`, `POST /menu` (with initial recipe), `GET/PATCH/DELETE /menu/{id}` (delete = archive) | owner/manager (read: any) |
+| Recipe versions | `POST /menu/{id}/versions` (new snapshot), `POST /menu/{id}/versions/{vid}/verify` | owner/manager |
+| Allergen helper | `POST /ingredients/check` (suggests allergen codes for ingredient names) | any member |
+| Feedback | `GET /feedback?status=`, `POST /feedback/{id}/decision` | owner/manager (read: any) |
+| Audit log | `GET /audit` | owner/manager |
+
+Recipe versions are snapshots: a change always creates a new version and old versions are kept.
+Versions report **warnings** when an ingredient name indicates an allergen the recipe doesn't
+declare (e.g. "ghee" without milk).
+
 ## API
 
 | Method | Path | Who |
@@ -140,7 +198,10 @@ links to the product page instead).
 | POST | `/api/auth/login` | public |
 | GET | `/api/auth/me` | logged in |
 | GET / PUT | `/api/me/allergy-profile` | customer |
-| GET | `/api/restaurants/{restaurant_id}` | restaurant member |
+| GET | `/api/restaurants/{restaurant_id}/...` | restaurant member (see dashboard table above) |
+| POST | `/api/analyze/restaurant` | customer: restaurant dish |
+| GET | `/api/public/restaurants`, `.../branches/{id}/menu` | logged in |
+| POST | `/api/feedback`, GET `/api/me/feedback` | customer |
 | POST | `/api/analyze/packaged` | customer: photos / barcode / product name |
 | POST | `/api/analyze/text` | customer: check a typed-in ingredient list against their saved allergies |
 
@@ -153,6 +214,7 @@ backend/app/
   models/     SQLAlchemy models (users, allergens, restaurants, recipes, feedback, audit)
   schemas/    request/response models
   services/   business logic
+  restaurant/ restaurant pipeline, recipe versions, feedback workflow, public-recipe fallback
   packaged/   packaged-food pipeline (image checks, barcode, OCR, Open Food Facts, vision)
   engine/     shared allergen analysis engine (text parsing, knowledge-base matching, rules, explanation)
   api/        dependencies (auth, tenant access) and routes

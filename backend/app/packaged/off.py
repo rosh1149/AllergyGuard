@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
-from difflib import SequenceMatcher
 
 import httpx
 
 from app.core.config import get_settings
+from app.core.similarity import name_similarity  # noqa: F401  (re-exported)
 
 log = logging.getLogger(__name__)
 
@@ -120,17 +119,3 @@ class OpenFoodFactsClient:
             },
         )
         return [_product(p, self.base_url) for p in data.get("products", []) if p.get("code")]
-
-
-def _tokens(s: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", s.lower()))
-
-
-def name_similarity(query: str, candidate: str) -> float:
-    """0-1 similarity between a product description and a candidate's brand+name."""
-    a, b = query.lower().strip(), candidate.lower().strip()
-    if not a or not b:
-        return 0.0
-    ta, tb = _tokens(a), _tokens(b)
-    token_score = len(ta & tb) / len(ta | tb) if ta | tb else 0.0
-    return max(token_score, SequenceMatcher(None, a, b).ratio())

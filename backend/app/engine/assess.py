@@ -241,7 +241,12 @@ def _decide(
     if cross:
         reasons = []
         for r in cross:
-            suffix = "" if r.kind == "cross_contact" else " This source is unverified."
+            if r.kind == "cross_contact":
+                suffix = ""
+            elif r.source_type in AUTHORITATIVE:
+                suffix = " This information may belong to a different item."
+            else:
+                suffix = " This source is unverified."
             reasons.append(f"Possible cross-contact: \"{r.detail}\" ({where(r)}).{suffix}")
         return Outcome.POSSIBLE_CROSS_CONTACT, _dedupe(reasons)
 

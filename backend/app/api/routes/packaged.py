@@ -17,6 +17,20 @@ def get_off_client() -> OpenFoodFactsClient | None:
     return OpenFoodFactsClient()
 
 
+def load_uploads(images: list[UploadFile]) -> list:
+    if len(images) > MAX_IMAGES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Upload at most {MAX_IMAGES} photos.")
+    max_bytes = get_settings().max_upload_mb * 1024 * 1024
+    loaded = []
+    for i, f in enumerate(images, 1):
+        data = f.file.read(max_bytes + 1)
+        try:
+            loaded.append(load_image(data, max_bytes))
+        except ImageError as e:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Photo {i}: {e}")
+    return loaded
+
+
 @router.post("/packaged", response_model=PackagedAnalysisOut)
 def analyze_packaged(
     user: CurrentCustomer,
@@ -32,16 +46,5 @@ def analyze_packaged(
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Upload at least one photo, or enter a barcode or product name."
         )
-    if len(images) > MAX_IMAGES:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Upload at most {MAX_IMAGES} photos.")
-
-    max_bytes = get_settings().max_upload_mb * 1024 * 1024
-    loaded = []
-    for i, f in enumerate(images, 1):
-        data = f.file.read(max_bytes + 1)
-        try:
-            loaded.append(load_image(data, max_bytes))
-        except ImageError as e:
-            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"Photo {i}: {e}")
-
+    loaded = load_uploads(images)
     return run_packaged_pipeline(db, user, loaded, barcode=barcode, product_name=product_name, off=off)
