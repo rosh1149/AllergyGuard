@@ -151,7 +151,7 @@ def _collect(
         cc_kind = "cross_contact" if p.trusted else "candidate_cross_contact"
         for decl in p.src.cross_contact:
             if decl.allergen_code in kb.allergens:
-                detail = f"{decl.level} cross-contact" + (f": {decl.description}" if decl.description else "")
+                detail = f"{decl.level.capitalize()} cross-contact" + (f": {decl.description}" if decl.description else "")
                 ev[decl.allergen_code].append(_ref(p, cc_kind, detail=detail))
         for stmt in p.precautions:
             for code in kb.codes_in(stmt):
@@ -247,7 +247,11 @@ def _decide(
                 suffix = " This information may belong to a different item."
             else:
                 suffix = " This source is unverified."
-            reasons.append(f"Possible cross-contact: \"{r.detail}\" ({where(r)}).{suffix}")
+            if r.detail.lower().startswith(("known cross-contact", "possible cross-contact")):
+                text = r.detail  # declared by the source, e.g. "Known cross-contact: shared fryer"
+            else:
+                text = f'Possible cross-contact: "{r.detail}"'  # a precautionary statement, quoted
+            reasons.append(f"{text} ({where(r)}).{suffix}")
         return Outcome.POSSIBLE_CROSS_CONTACT, _dedupe(reasons)
 
     if by_kind["candidate"]:

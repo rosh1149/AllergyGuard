@@ -11,7 +11,7 @@ evidence and uncertainty; it never certifies food as safe.
 | 2 | Shared allergen analysis engine | Done |
 | 3 | Packaged-food pipeline | Done |
 | 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Done |
-| 5 | React + TypeScript frontend | Planned |
+| 5 | React + TypeScript frontend | Done |
 
 ## Run
 
@@ -20,11 +20,13 @@ cp .env.example .env
 docker compose up --build
 ```
 
-API docs: http://localhost:8000/docs
+- App: http://localhost:8080
+- API docs: http://localhost:8000/docs
 
 ### Without Docker
 
-Needs Tesseract OCR installed (`apt install tesseract-ocr` / `brew install tesseract`).
+Backend (needs PostgreSQL at `DATABASE_URL` and Tesseract OCR: `apt install tesseract-ocr` /
+`brew install tesseract`). Tables and reference data are created on startup.
 
 ```bash
 cd backend
@@ -32,7 +34,15 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Requires a PostgreSQL database at `DATABASE_URL`. Tables and reference data are created on startup.
+Frontend (Node 20+), in a second terminal. The dev server proxies `/api` to `localhost:8000`.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Then open http://localhost:5173.
 
 ### Tests
 
@@ -42,6 +52,9 @@ pytest -q
 ```
 
 Uses the `allergyguard_test` database (override with `TEST_DATABASE_URL`). It is dropped and recreated.
+
+Frontend type check and build: `cd frontend && npm run build`. A Playwright browser walkthrough of the
+main journeys is in `frontend/e2e/walkthrough.cjs` (instructions at the top of the file).
 
 ## Demo accounts (when `SEED_DEMO_DATA=true`)
 
@@ -187,6 +200,32 @@ Recipe versions are snapshots: a change always creates a new version and old ver
 Versions report **warnings** when an ingredient name indicates an allergen the recipe doesn't
 declare (e.g. "ghee" without milk).
 
+## Frontend (Part 5)
+
+React 19 + TypeScript + Vite + React Router, no UI framework (`frontend/src/styles.css`).
+
+**Customer app**
+- Sign up with allergies (required; standard allergens + custom ones); edit them under *My allergies*.
+- *Packaged food*: up to 3 photos (camera on phones), optional barcode/product name.
+- *Restaurant food*: search registered restaurants -> branch -> pick the dish from the menu, or type
+  its name / add a photo; or check an unlisted restaurant. Unconfirmed dish matches offer
+  "Is your dish one of these?" buttons.
+- *Type an ingredient list* for labels that won't scan.
+- Results: overall verdict, a card per allergy with the reasons, other allergens found, conflicts,
+  limitations, explanation, evidence sources, "Ask the staff" checklist, how it was checked.
+- *Suggest a correction* on restaurant dishes; *My suggestions* shows the restaurant's decision.
+
+Outcome colours: Present = red, Possible cross-contact = amber, Unknown = grey,
+Not listed in verified records = blue (deliberately not green - it is not a safety signal).
+
+**Restaurant dashboard**: overview (counts needing attention), menu (filter by branch/status;
+unverified recipes and pending suggestions flagged), dish page (current recipe with allergen
+warnings, mark verified, edit = new version, version history, archive), add dish with the recipe
+editor ("suggest allergens from names", per-ingredient allergen toggles, dish-level allergens,
+cross-contact), feedback review (confirm/reject with note, explains what confirming will change),
+branches, team, settings, audit log. Controls follow the role (owner / manager / staff read-only);
+the API enforces the same rules.
+
 ## API
 
 | Method | Path | Who |
@@ -208,6 +247,12 @@ declare (e.g. "ghee" without milk).
 ## Layout
 
 ```
+frontend/src/
+  api/        fetch client and response types
+  auth/       login state
+  components/ result view, allergy picker, photo picker, shared UI
+  pages/      customer pages, restaurant dashboard pages
+
 backend/app/
   core/       config, password hashing, JWT
   db/         engine/session, table creation + seeding
