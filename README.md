@@ -8,7 +8,7 @@ evidence and uncertainty; it never certifies food as safe.
 | Part | Scope | Status |
 |---|---|---|
 | 1 | Foundation: FastAPI, PostgreSQL schema, auth & roles, tenant isolation, allergen knowledge base | Done |
-| 2 | Shared allergen analysis engine | Planned |
+| 2 | Shared allergen analysis engine | Done |
 | 3 | Packaged-food pipeline | Planned |
 | 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Planned |
 | 5 | React + TypeScript frontend | Planned |
@@ -63,7 +63,45 @@ Uses the `allergyguard_test` database (override with `TEST_DATABASE_URL`). It is
 - **Customer feedback is unverified by default** and has its own table; trusted records only change
   through an authorized decision, which is written to `audit_records`.
 
-## API (Part 1)
+## Allergen analysis engine (Part 2)
+
+`backend/app/engine/` is shared by both pipelines. Pipelines describe what they found as
+`EvidenceSource` objects (label text, product database entry, restaurant records, public recipe,
+customer suggestion); `assess()` applies fixed rules; the explanation is written afterwards.
+
+**Rules, per allergen (first match wins):**
+
+1. Presence in an authoritative source whose identity is trusted -> **PRESENT**
+2. Any cross-contact evidence (restaurant records, "may contain" statements) -> **POSSIBLE CROSS-CONTACT**
+3. Presence only in an unverified/candidate source -> **UNKNOWN**
+4. Only a "free-from" claim mentions it -> **UNKNOWN**
+5. At least one complete, reliable, verified ingredient source, and the sources' ingredient lists
+   don't disagree -> **NOT LISTED IN VERIFIED RECORDS** (never "safe")
+6. Otherwise -> **UNKNOWN**
+
+**What counts as what:**
+
+| Source | Presence counts as PRESENT | Can support NOT LISTED |
+|---|---|---|
+| Label photo (OCR) / label typed in | yes | yes, if read reliably (confidence >= 0.6) |
+| Product database / manufacturer | yes, if identification confidence >= 0.7 | same condition |
+| Restaurant records, verified | yes, if dish match confidence >= 0.7 | same condition |
+| Restaurant records, not verified | yes, if dish match confidence >= 0.7 | no |
+| Public recipe, customer suggestion | no (UNKNOWN, flagged) | no |
+
+**Also handled:** ingredient synonyms and look-alikes (knowledge base), compound ingredients
+(`chocolate (sugar, milk powder)`), "may contain" / "made in a factory that handles" statements,
+free-from claims, non-specific ingredients ("spices", "natural flavourings"), conflicts (sources
+disagree on an allergen; ingredient lists differ substantially; a restaurant's ingredients indicate an
+allergen its own declaration omits), custom allergies, and personalization (the customer's own
+allergens first, other allergens found listed separately).
+
+**Explanation:** a template explanation is always produced. If `ANTHROPIC_API_KEY` is set, Claude
+(`claude-opus-5-5` by default, low effort, server-side refusal fallback enabled) rewrites it from the
+structured result only. Its output is rejected, and the template used instead, if it omits one of the
+user's allergens or makes a safety claim ("safe to eat", "allergen-free", "no risk", ...).
+
+## API
 
 | Method | Path | Who |
 |---|---|---|
@@ -75,6 +113,7 @@ Uses the `allergyguard_test` database (override with `TEST_DATABASE_URL`). It is
 | GET | `/api/auth/me` | logged in |
 | GET / PUT | `/api/me/allergy-profile` | customer |
 | GET | `/api/restaurants/{restaurant_id}` | restaurant member |
+| POST | `/api/analyze/text` | customer: check a typed-in ingredient list against their saved allergies |
 
 ## Layout
 
@@ -85,6 +124,7 @@ backend/app/
   models/     SQLAlchemy models (users, allergens, restaurants, recipes, feedback, audit)
   schemas/    request/response models
   services/   business logic
+  engine/     shared allergen analysis engine (text parsing, knowledge-base matching, rules, explanation)
   api/        dependencies (auth, tenant access) and routes
   seed/       allergen knowledge base (14 allergens, synonyms, exclusions) and demo data
 ```

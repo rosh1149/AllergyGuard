@@ -9,4 +9,5 @@ python-multipart
 PyJWT==2.15.0
 bcrypt==5.0.0
 httpx==0.28.1
+anthropic==2.3.0
 pytest==9.2.0
