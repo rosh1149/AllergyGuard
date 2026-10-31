@@ -3,7 +3,9 @@ from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 from app.models import (
+    CrossContactKind,
     CrossContactLevel,
+    CrossContactStatus,
     MembershipRole,
     MenuItemStatus,
     SuggestionStatus,
@@ -90,6 +92,8 @@ class CrossContactIn(BaseModel):
     allergen_code: str
     level: CrossContactLevel = CrossContactLevel.possible
     description: str = Field(default="", max_length=1000)
+    kind: CrossContactKind = CrossContactKind.other
+    status: CrossContactStatus = CrossContactStatus.verified
 
 
 class RecipeIn(BaseModel):
@@ -98,6 +102,8 @@ class RecipeIn(BaseModel):
     dish_allergen_codes: list[str] = Field(default_factory=list)
     cross_contacts: list[CrossContactIn] = Field(default_factory=list)
     change_note: str = Field(default="", max_length=1000)
+    # Staff assessed cross-contact for this recipe (so "no cross-contact records" means none found).
+    cross_contact_reviewed: bool = False
     # Editors can confirm the recipe in the same step; otherwise it stays unverified.
     mark_verified: bool = False
 
@@ -137,6 +143,20 @@ class CrossContactOut(BaseModel):
     allergen_code: str
     level: CrossContactLevel
     description: str
+    kind: CrossContactKind = CrossContactKind.other
+    status: CrossContactStatus = CrossContactStatus.verified
+
+
+class VersionChanges(BaseModel):
+    """What changed compared with the previous version."""
+
+    previous_version: int | None = None
+    ingredients_added: list[str] = Field(default_factory=list)
+    ingredients_removed: list[str] = Field(default_factory=list)
+    allergens_added: list[str] = Field(default_factory=list)
+    allergens_removed: list[str] = Field(default_factory=list)
+    cross_contact_added: list[str] = Field(default_factory=list)
+    cross_contact_removed: list[str] = Field(default_factory=list)
 
 
 class AllergenWarning(BaseModel):
@@ -159,6 +179,8 @@ class RecipeVersionOut(BaseModel):
     ingredients: list[IngredientOut]
     dish_allergen_codes: list[str]
     cross_contacts: list[CrossContactOut]
+    cross_contact_reviewed: bool = False
+    changes: VersionChanges | None = None
     # Ingredients whose name indicates an allergen that the recipe doesn't declare.
     warnings: list[AllergenWarning] = Field(default_factory=list)
 

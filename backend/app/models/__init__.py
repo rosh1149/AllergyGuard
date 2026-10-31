@@ -1,4 +1,5 @@
 from app.models.allergen import Allergen, AllergenTerm, AllergenTermKind
+from app.models.evidence import Assessment, ProductSnapshot
 from app.models.feedback import AuditRecord, FeedbackSuggestion, SuggestionStatus, SuggestionType
 from app.models.knowledge import (
     ACTIVE_STATUSES,
@@ -22,8 +23,10 @@ from app.models.knowledge import (
 from app.models.restaurant import (
     AllergenRecord,
     Branch,
+    CrossContactKind,
     CrossContactLevel,
     CrossContactRecord,
+    CrossContactStatus,
     IngredientRecord,
     MembershipRole,
     MenuItem,
@@ -37,6 +40,10 @@ from app.models.user import CustomerAllergy, CustomerCustomAllergy, User, UserRo
 
 __all__ = [
     "ACTIVE_STATUSES",
+    "Assessment",
+    "ProductSnapshot",
+    "CrossContactKind",
+    "CrossContactStatus",
     "Allergen",
     "AllergenParent",
     "Certainty",

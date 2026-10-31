@@ -181,6 +181,44 @@ Every ingredient in a result keeps `original_text`, normalized `text`, `role` an
 `match_confidence`, `corrections` and `suggestion`. `POST /api/knowledge/resolve` (with `"ocr": true`
 for photo text) shows the same breakdown for any ingredient list.
 
+## Evidence fusion, freshness and history (Step C)
+
+Every source and every finding now says where it came from and how current it is:
+
+- **Provenance.** Sources carry `reference` (e.g. `barcode 5000159407236`,
+  `Spice Route / Central / Butter Chicken / recipe v3`, `label photo 1`), `verification`
+  (label, verified, unverified, community, public, customer) and `as_of`. Each evidence item repeats
+  these, plus `collected_at`, the match confidence and the ids of any conflicts it is part of.
+- **Freshness.** Verified restaurant recipes older than `RESTAURANT_RECORD_MAX_AGE_DAYS` (365) and
+  product-database entries older than `PRODUCT_RECORD_MAX_AGE_DAYS` (1095, using Open Food Facts
+  `last_modified_t`) still report allergens as present, but cannot rule them out.
+- **Completeness.** A source with unidentified ingredient text cannot support NOT LISTED. Each source
+  reports `completeness` (complete, partial, unavailable, conflicting) and `unresolved_items`.
+- **Conflicts.** Each conflict has an `id`, the dates of the sources involved and a `resolution`.
+  The cautious finding is always kept. A new kind, `cross_contact_disagreement`, covers cases where
+  one source reports cross-contact and another, which assessed it, does not.
+- **Basis.** Each allergen outcome lists what it rests on, for example direct_ingredient,
+  derived_ingredient, declared_by_source, cross_contact, not_found_in_verified_records or
+  insufficient_evidence.
+- **Structured cross-contact.** Restaurant records take a `kind` (shared_equipment, shared_fryer,
+  preparation_area, utensils, storage, manufacturing_facility, supplier, precautionary_label, other)
+  and a `status` (verified, reported, unknown). A recipe version can be marked
+  `cross_contact_reviewed`. Without that mark, and with no cross-contact records, the result says that
+  cross-contact was not assessed.
+- **Recipe versions.** Each version in the dashboard shows `changes` from the previous one:
+  ingredients, allergens and cross-contact added or removed. Unreviewed customer reports count only
+  against the current version. Reports on an older version are listed as a limitation.
+- **Product snapshots.** Each distinct Open Food Facts record is kept in `product_snapshots`, keyed
+  by a content hash. If the record changes, the result warns about a possible reformulation and lists
+  the ingredients and allergens added or removed.
+- **Stored assessments.** Every analysis is saved for the customer, without photos. The record holds
+  the outcome per allergen, the sources used, the knowledge version and links to the recipe version
+  or product snapshot. `result.assessment_id` identifies it. `GET /api/me/assessments` marks an
+  assessment `outdated` when the recipe, the product record or the knowledge base has changed since.
+
+Existing databases are upgraded in place at startup (`app/db/upgrade.py`, which adds the new
+columns; new tables are created automatically).
+
 ## Packaged-food pipeline (Part 3)
 
 `POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,
@@ -308,6 +346,7 @@ the API enforces the same rules.
 | POST | `/api/feedback`, GET `/api/me/feedback` | customer |
 | POST | `/api/analyze/packaged` | customer: photos / barcode / product name |
 | POST | `/api/analyze/text` | customer: check a typed-in ingredient list against their saved allergies |
+| GET / DELETE | `/api/me/assessments`, `/api/me/assessments/{id}` | customer: stored results, with `outdated` flags |
 
 ## Layout
 

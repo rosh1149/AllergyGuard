@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from itertools import combinations
 
 from app.engine.knowledge import KnowledgeBase, custom_match
@@ -67,9 +68,27 @@ class _Prepared:
     absence_reason: str = ""
     present_codes: set[str] = field(default_factory=set)
     normalized: list[NormalizedIngredient] = field(default_factory=list)
+    collected_at: datetime | None = None
+    age_days: int | None = None
+    fresh: bool = True
+    unresolved: list[str] = field(default_factory=list)
 
 
-def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
+CROSS_CONTACT_KINDS = {
+    "shared_equipment": "shared equipment", "shared_fryer": "shared fryer", "preparation_area": "shared preparation area",
+    "utensils": "shared utensils", "storage": "shared storage", "manufacturing_facility": "same manufacturing facility",
+    "supplier": "supplier information", "precautionary_label": "precautionary label statement", "other": "",
+}
+
+
+def _age_days(src: EvidenceSource, now: datetime) -> int | None:
+    if src.as_of is None:
+        return None
+    as_of = src.as_of if src.as_of.tzinfo else src.as_of.replace(tzinfo=timezone.utc)
+    return max(0, (now - as_of).days)
+
+
+def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: datetime) -> _Prepared:
     precautions: list[str] = []
     ocr = src.type == SourceType.label_ocr  # OCR correction only applies to text read from a photo
     normalized: list[NormalizedIngredient] = []
@@ -94,6 +113,11 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext) -> _P
     )
     trusted = src.type in AUTHORITATIVE and identity_ok
 
+    age = _age_days(src, now)
+    fresh = src.max_age_days is None or age is None or age <= src.max_age_days
+    unresolved = list(dict.fromkeys(
+        n.original for n in normalized if n.counts and n.resolution is not None and n.resolution.status == "unresolved"))
+
     reason = ""
     if src.type not in ABSENCE_CAPABLE:
         reason = "This kind of source is not a verified record."
@@ -105,7 +129,12 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext) -> _P
         reason = "The text could not be read reliably."
     elif not items:
         reason = "No ingredients were found in this source."
-    return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason, normalized=normalized)
+    elif not fresh:
+        reason = f"The information is {age} days old (more than {src.max_age_days}) and may be out of date."
+    elif unresolved:
+        reason = "It contains ingredient text that could not be identified: " + ", ".join(unresolved) + "."
+    return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason, normalized=normalized,
+                     collected_at=now, age_days=age, fresh=fresh, unresolved=unresolved)
 
 
 def _ref(
@@ -132,6 +161,11 @@ def _ref(
         certainty=certainty,
         matched_as=n.text if n is not None and n.text != n.original else "",
         match_method=n.method if n is not None else "",
+        match_confidence=n.confidence if n is not None else None,
+        source_reference=p.src.reference,
+        source_verification=p.src.verification,
+        source_as_of=p.src.as_of,
+        collected_at=p.collected_at,
     )
 
 
@@ -202,7 +236,9 @@ def _collect(
         cc_kind = "cross_contact" if p.trusted else "candidate_cross_contact"
         for decl in p.src.cross_contact:
             if decl.allergen_code in kb.allergens:
-                detail = f"{decl.level.capitalize()} cross-contact" + (f": {decl.description}" if decl.description else "")
+                qualifiers = [q for q in (CROSS_CONTACT_KINDS.get(decl.kind, decl.kind), decl.status if decl.status != "verified" else "") if q]
+                detail = (f"{decl.level.capitalize()} cross-contact" + (f" ({', '.join(qualifiers)})" if qualifiers else "")
+                          + (f": {decl.description}" if decl.description else ""))
                 ev[decl.allergen_code].append(_ref(p, cc_kind, detail=detail))
         for stmt in p.precautions:
             for code in kb.codes_in(stmt):
@@ -240,7 +276,19 @@ def _apply_hierarchy(kb: KnowledgeBase, ev: dict[str, list[EvidenceRef]]) -> Non
                     child_keys.add((r.source_id, r.ingredient))
 
 
-def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared]) -> tuple[list[Conflict], bool]:
+def _dated(p: _Prepared) -> str:
+    return f"{p.src.name} (as of {p.src.as_of.date().isoformat()})" if p.src.as_of else p.src.name
+
+
+def _newer(a: _Prepared, b: _Prepared) -> str:
+    """A sentence naming the more recent source, when both are dated and differ."""
+    if a.src.as_of and b.src.as_of and a.src.as_of.date() != b.src.as_of.date():
+        newer = a if _age_days(a.src, a.collected_at) < _age_days(b.src, b.collected_at) else b
+        return f" {newer.src.name} is the more recent source."
+    return ""
+
+
+def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared], ev: dict[str, list[EvidenceRef]]) -> tuple[list[Conflict], bool]:
     conflicts: list[Conflict] = []
 
     # A source's own allergen declaration omits an allergen its ingredients indicate.
@@ -252,49 +300,64 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared]) -> tuple[list[Confl
         from_items |= {path.allergen_code for r in res_list for _, path in r.paths if path.certainty == "definite"}
         from_items &= set(kb.allergens)
         for code in sorted(from_items - set(p.src.declared_allergens)):
-            conflicts.append(
-                Conflict(
-                    kind="declaration_mismatch",
-                    allergen_code=code,
-                    description=(
-                        f"{p.src.name} lists an ingredient that indicates {kb.name(code)}, "
-                        f"but its allergen declaration does not include {kb.name(code)}."
-                    ),
-                    source_ids=[p.src.id],
-                )
-            )
+            conflicts.append(Conflict(
+                kind="declaration_mismatch",
+                allergen_code=code,
+                description=(f"{p.src.name} lists an ingredient that indicates {kb.name(code)}, "
+                             f"but its allergen declaration does not include {kb.name(code)}."),
+                source_ids=[p.src.id],
+                resolution=f"The ingredient is used: {kb.name(code)} is reported as present.",
+            ))
 
-    eligible = [p for p in prepared if p.absence_ok]
+    # Sources trusted enough to say what is in the item (stale ones included: their presence still counts).
+    comparable = [p for p in prepared if p.trusted and p.items and p.src.complete]
     list_mismatch = False
-    for a, b in combinations(eligible, 2):
+    for a, b in combinations(comparable, 2):
         for code in sorted(a.present_codes ^ b.present_codes):
             has, lacks = (a, b) if code in a.present_codes else (b, a)
-            conflicts.append(
-                Conflict(
-                    kind="allergen_disagreement",
-                    allergen_code=code,
-                    description=(
-                        f"{has.src.name} indicates {kb.name(code)}, but {lacks.src.name} does not mention it."
-                    ),
-                    source_ids=[has.src.id, lacks.src.id],
-                )
-            )
+            conflicts.append(Conflict(
+                kind="allergen_disagreement",
+                allergen_code=code,
+                description=f"{_dated(has)} indicates {kb.name(code)}, but {_dated(lacks)} does not mention it.",
+                source_ids=[has.src.id, lacks.src.id],
+                resolution=f"The more cautious finding is kept: {kb.name(code)} is reported as present." + _newer(a, b),
+            ))
         if len(a.items) >= 3 and len(b.items) >= 3:
             wa, wb = word_set(a.items), word_set(b.items)
             overlap = len(wa & wb) / max(1, min(len(wa), len(wb)))
             if overlap < LIST_MISMATCH_THRESHOLD:
                 list_mismatch = True
-                conflicts.append(
-                    Conflict(
-                        kind="ingredient_list_mismatch",
-                        description=(
-                            f"The ingredient lists from {a.src.name} and {b.src.name} differ substantially "
-                            f"({overlap:.0%} overlap). They may describe different products, variants or "
-                            "recipe versions."
-                        ),
-                        source_ids=[a.src.id, b.src.id],
-                    )
-                )
+                conflicts.append(Conflict(
+                    kind="ingredient_list_mismatch",
+                    description=(f"The ingredient lists from {_dated(a)} and {_dated(b)} differ substantially "
+                                 f"({overlap:.0%} overlap). They may describe different products, variants or recipe versions."),
+                    source_ids=[a.src.id, b.src.id],
+                    resolution="Neither list is used to rule allergens out; anything either list indicates is kept." + _newer(a, b),
+                ))
+
+    # Cross-contact: one source records it, another trusted source says it assessed cross-contact and found none.
+    for code, refs in ev.items():
+        if code not in kb.allergens:
+            continue
+        flagged = {r.source_id for r in refs if r.kind == "cross_contact"}
+        for p in prepared:
+            if flagged and p.trusted and p.src.cross_contact_assessed and p.src.id not in flagged:
+                others = [q for q in prepared if q.src.id in flagged]
+                conflicts.append(Conflict(
+                    kind="cross_contact_disagreement",
+                    allergen_code=code,
+                    description=(f"{', '.join(_dated(q) for q in others)} records possible cross-contact with {kb.name(code)}, "
+                                 f"but {_dated(p)} records none."),
+                    source_ids=[*sorted(flagged), p.src.id],
+                    resolution="The more cautious finding is kept: possible cross-contact is reported.",
+                ))
+
+    for i, c in enumerate(conflicts, 1):
+        c.id = f"c{i}"
+        if c.allergen_code:
+            for r in ev.get(c.allergen_code, []):
+                if r.source_id in c.source_ids:
+                    r.conflict_ids.append(c.id)
     return conflicts, list_mismatch
 
 
@@ -380,10 +443,11 @@ def assess(
     ctx: AnalysisContext | None = None,
 ) -> AnalysisResult:
     ctx = ctx or AnalysisContext()
+    now = ctx.now or datetime.now(timezone.utc)
     custom_terms = [normalize(t) for t in profile.custom_terms if normalize(t)]
-    prepared = [_prepare(kb, s, ctx) for s in sources]
+    prepared = [_prepare(kb, s, ctx, now) for s in sources]
     evidence, nonspecific = _collect(kb, prepared, custom_terms)
-    conflicts, list_mismatch = _conflicts(kb, prepared)
+    conflicts, list_mismatch = _conflicts(kb, prepared, evidence)
 
     eligible = [p for p in prepared if p.absence_ok]
     if not eligible:
@@ -409,6 +473,7 @@ def assess(
             reasons=reasons,
             evidence=evidence.get(code, []),
             regulated_in=kb.regulated_in(code),
+            basis=_basis(outcome, evidence.get(code, [])),
         )
     for term in custom_terms:
         key = f"custom:{term}"
@@ -423,6 +488,7 @@ def assess(
             outcome_label=outcome.label,
             reasons=reasons,
             evidence=evidence.get(key, []),
+            basis=_basis(outcome, evidence.get(key, [])),
         )
 
     rank = {o: i for i, o in enumerate(SEVERITY)}
@@ -457,6 +523,11 @@ def assess(
             limitations.append("The restaurant's records for this dish have not been verified by staff yet.")
         if p.src.type == SourceType.customer_suggestion:
             limitations.append("Customer suggestions are unverified and have not been confirmed by the restaurant.")
+    for p in prepared:
+        if not p.fresh and p.age_days is not None:
+            limitations.append(f"{p.src.name} was last updated or verified {p.age_days} days ago; it was not used to rule allergens out.")
+        if p.src.cross_contact_assessed is False:
+            limitations.append(f"{p.src.name} does not record a cross-contact review. No cross-contact record is not evidence of no cross-contact.")
     if nonspecific:
         limitations.append(
             "Some ingredients are general terms whose components are not listed: " + ", ".join(nonspecific) + "."
@@ -483,6 +554,13 @@ def assess(
             used_for_absence=p.absence_ok and not list_mismatch,
             not_used_for_absence_reason=p.absence_reason
             or ("Ingredient lists disagree between sources." if list_mismatch else ""),
+            reference=p.src.reference,
+            verification=p.src.verification,
+            as_of=p.src.as_of,
+            age_days=p.age_days,
+            fresh=p.fresh,
+            completeness=_completeness(p, conflicts),
+            unresolved_items=p.unresolved,
         )
         for p in prepared
     ]
@@ -499,7 +577,43 @@ def assess(
         nonspecific_ingredients=nonspecific,
         ingredients=[resolution_out(kb, p.src.id, n) for p in prepared for n in p.normalized],
         knowledge_version=kb.version,
+        evaluated_at=now,
     )
+
+
+BASIS = {
+    "declared": "declared_by_source",
+    "cross_contact": "cross_contact",
+    "candidate_cross_contact": "cross_contact",
+    "possible_source": "possible_source",
+    "candidate": "unverified_source",
+    "claim": "free_from_claim",
+}
+
+
+def _basis(outcome: Outcome, refs: list[EvidenceRef]) -> list[str]:
+    """What kinds of evidence the outcome rests on, for the explanation."""
+    out = []
+    for r in refs:
+        if r.kind == "presence":
+            out.append("derived_ingredient" if "," in r.relationship_path else "direct_ingredient")
+        elif r.kind in BASIS:
+            out.append(BASIS[r.kind])
+    if outcome == Outcome.NOT_LISTED_IN_VERIFIED_RECORDS:
+        out.append("not_found_in_verified_records")
+    elif outcome == Outcome.UNKNOWN and not refs:
+        out.append("insufficient_evidence")
+    return _dedupe(out)
+
+
+def _completeness(p: _Prepared, conflicts: list[Conflict]) -> str:
+    if not p.items:
+        return "unavailable"
+    if any(c.kind == "ingredient_list_mismatch" and p.src.id in c.source_ids for c in conflicts):
+        return "conflicting"
+    if not p.src.complete or p.unresolved:
+        return "partial"
+    return "complete"
 
 
 def resolution_out(kb: KnowledgeBase, source_id: str, n: NormalizedIngredient) -> IngredientResolution:

@@ -38,6 +38,12 @@ class Settings(BaseSettings):
     fuzzy_min_length: int = 5
     fuzzy_margin: float = 3
 
+    # Evidence freshness: older records still show allergens as present, but are not used to rule
+    # allergens out. Restaurant recipes: days since staff last verified them. Product database
+    # entries: days since the entry was last updated.
+    restaurant_record_max_age_days: int = 365
+    product_record_max_age_days: int = 1095
+
     # Packaged-food pipeline
     off_base_url: str = "https://world.openfoodfacts.org"
     off_user_agent: str = "AllergyGuard/0.1 (allergen information app)"

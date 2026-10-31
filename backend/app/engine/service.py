@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from dataclasses import dataclass
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, selectinload
@@ -13,6 +14,7 @@ from app.engine.knowledge import AllergenInfo, ConceptInfo, KnowledgeBase
 from app.engine.types import AllergyProfile, AnalysisContext, AnalysisResult, EvidenceSource
 from app.models import (
     ACTIVE_STATUSES,
+    Assessment,
     Allergen,
     AllergenParent,
     AllergenTermKind,
@@ -128,14 +130,66 @@ def record_unresolved(db: Session, result: AnalysisResult) -> None:
     db.commit()
 
 
+@dataclass
+class AssessmentLink:
+    """What an assessment was about, so it can be found again and checked for staleness."""
+
+    kind: str  # packaged | restaurant | text
+    barcode: str | None = None
+    product_snapshot_id: int | None = None
+    restaurant_id: int | None = None
+    menu_item_id: int | None = None
+    recipe_version_id: int | None = None
+
+
+def _source_record(s) -> dict:
+    return {
+        "id": s.id, "type": s.type.value, "name": s.name, "reference": s.reference, "verification": s.verification,
+        "as_of": s.as_of.isoformat() if s.as_of else None, "fresh": s.fresh, "completeness": s.completeness,
+        "used_for_absence": s.used_for_absence, "ingredients": s.ingredients,
+    }
+
+
+def store_assessment(db: Session, user: User, result: AnalysisResult, link: AssessmentLink) -> Assessment:
+    """Keep the outcome per allergen, the exact sources used and the knowledge version (no photos)."""
+    a = Assessment(
+        customer_id=user.id,
+        kind=link.kind,
+        label=result.identity_label,
+        overall_outcome=result.overall_outcome.value,
+        outcomes={x.code: x.outcome.value for x in result.your_allergens + result.other_allergens},
+        sources=[_source_record(s) for s in result.sources],
+        knowledge_version=result.knowledge_version,
+        barcode=link.barcode,
+        product_snapshot_id=link.product_snapshot_id,
+        restaurant_id=link.restaurant_id,
+        menu_item_id=link.menu_item_id,
+        recipe_version_id=link.recipe_version_id,
+        result={},
+        created_at=result.evaluated_at or utcnow(),
+    )
+    db.add(a)
+    db.flush()
+    result.assessment_id = a.id
+    a.result = result.model_dump(mode="json")
+    db.commit()
+    return a
+
+
 def analyze_for_user(
     db: Session,
     user: User,
     sources: list[EvidenceSource],
     ctx: AnalysisContext | None = None,
     use_llm: bool = True,
+    record: AssessmentLink | None = None,
 ) -> AnalysisResult:
-    """Entry point for pipelines: the user's saved allergy profile is always applied."""
+    """Entry point for pipelines: the user's saved allergy profile is always applied.
+
+    With `record`, the assessment is stored in the customer's history (result.assessment_id)."""
     result = assess(get_knowledge_base(db), sources, profile_for(user), ctx)
     record_unresolved(db, result)
-    return add_explanation(result, use_llm=use_llm)
+    result = add_explanation(result, use_llm=use_llm)
+    if record is not None:
+        store_assessment(db, user, result, record)
+    return result

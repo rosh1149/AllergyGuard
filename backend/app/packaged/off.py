@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 
 import httpx
 
@@ -14,7 +15,7 @@ log = logging.getLogger(__name__)
 
 FIELDS = (
     "code,product_name,product_name_en,brands,quantity,ingredients_text,ingredients_text_en,"
-    "allergens_tags,traces_tags,image_front_url"
+    "allergens_tags,traces_tags,image_front_url,last_modified_t"
 )
 
 # Open Food Facts allergen tags -> AllergyGuard allergen codes.
@@ -51,6 +52,7 @@ class OffProduct:
     trace_codes: list[str] = field(default_factory=list)
     url: str = ""
     image_url: str = ""
+    updated_at: datetime | None = None  # when the database entry was last modified
 
     @property
     def display_name(self) -> str:
@@ -73,7 +75,15 @@ def _product(raw: dict, base_url: str) -> OffProduct:
         trace_codes=_codes(raw.get("traces_tags")),
         url=f"{base_url}/product/{code}" if code else "",
         image_url=raw.get("image_front_url") or "",
+        updated_at=_timestamp(raw.get("last_modified_t")),
     )
+
+
+def _timestamp(value) -> datetime | None:
+    try:
+        return datetime.fromtimestamp(int(value), tz=UTC) if value else None
+    except (TypeError, ValueError, OverflowError, OSError):
+        return None
 
 
 class OpenFoodFactsClient:

@@ -214,6 +214,8 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     "lamb": ("lamb", ["lamb", "mutton"], False),
     "mushroom": ("mushroom", ["mushroom", "mushrooms", "button mushroom"], False),
     "butternut_squash": ("butternut squash", ["butternut squash", "butternut"], False),
+    "vinegar": ("vinegar", ["vinegar", "spirit vinegar", "white vinegar", "cider vinegar", "apple cider vinegar"], False),
+    "paprika": ("paprika", ["paprika", "smoked paprika"], False),
     "guar_gum": ("guar gum", ["guar gum", "e412"], False),
     "xanthan_gum": ("xanthan gum", ["xanthan gum", "e415"], False),
     "vanillin": ("vanillin", ["vanillin", "vanilla", "vanilla extract", "vanilla flavouring"], False),

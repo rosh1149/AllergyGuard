@@ -10,6 +10,7 @@ from app.api.routes import (
     analyze,
     auth,
     feedback,
+    history,
     knowledge,
     packaged,
     profile,
@@ -51,6 +52,7 @@ app.include_router(restaurant_analysis.router, prefix=API)
 app.include_router(public.router, prefix=API)
 app.include_router(feedback.router, prefix=API)
 app.include_router(knowledge.router, prefix=API)
+app.include_router(history.router, prefix=API)
 
 
 @app.get(f"{API}/health", tags=["health"])

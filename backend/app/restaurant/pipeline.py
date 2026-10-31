@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.similarity import name_similarity
-from app.engine.service import analyze_for_user
+from app.engine.service import AssessmentLink, analyze_for_user
 from app.engine.types import (
     MIN_IDENTITY_CONFIDENCE,
     AnalysisContext,
@@ -25,6 +25,7 @@ from app.models import (
     FeedbackSuggestion,
     MenuItem,
     MenuItemStatus,
+    RecipeVersion,
     Restaurant,
     SuggestionStatus,
     SuggestionType,
@@ -104,12 +105,16 @@ def _match_dish(
     return sorted(matches, key=lambda m: -m.confidence)
 
 
-def _suggestion_source(db: Session, item: MenuItem) -> EvidenceSource | None:
+def _suggestion_source(db: Session, item: MenuItem, version: RecipeVersion) -> tuple[EvidenceSource | None, int]:
+    """Unreviewed customer reports about the current recipe version. Reports made against an
+    earlier version are not used (the recipe has changed since); their count is returned."""
     pending = db.scalars(
         select(FeedbackSuggestion).where(
             FeedbackSuggestion.menu_item_id == item.id, FeedbackSuggestion.status == SuggestionStatus.unverified
         )
     ).all()
+    older = [s for s in pending if s.recipe_version_id is not None and s.recipe_version_id != version.id]
+    pending = [s for s in pending if s not in older]
     ingredients, declared, cross = [], [], []
     for s in pending:
         if s.suggestion_type == SuggestionType.missing_ingredient and s.ingredient_name:
@@ -117,9 +122,10 @@ def _suggestion_source(db: Session, item: MenuItem) -> EvidenceSource | None:
         elif s.suggestion_type == SuggestionType.missing_allergen and s.allergen:
             declared.append(s.allergen.code)
         elif s.suggestion_type == SuggestionType.cross_contact and s.allergen:
-            cross.append(CrossContactDecl(s.allergen.code, "possible", s.message or "Reported by a customer"))
+            cross.append(CrossContactDecl(s.allergen.code, "possible", s.message or "Reported by a customer",
+                                          kind="other", status="reported"))
     if not (ingredients or declared or cross):
-        return None
+        return None, len(older)
     return EvidenceSource(
         id=f"suggestions:{item.id}",
         type=SourceType.customer_suggestion,
@@ -128,7 +134,10 @@ def _suggestion_source(db: Session, item: MenuItem) -> EvidenceSource | None:
         declared_allergens=declared,
         cross_contact=cross,
         complete=False,
-    )
+        reference=f"{len(pending)} customer report(s) on recipe v{version.version_number}",
+        verification="customer",
+        as_of=max(s.created_at for s in pending),
+    ), len(older)
 
 
 def run_restaurant_pipeline(
@@ -158,6 +167,7 @@ def run_restaurant_pipeline(
     identity_conf: float | None = None
     guess = None
     dish_label = dish_name
+    link = AssessmentLink(kind="restaurant", restaurant_id=restaurant_id)
 
     if restaurant_id is not None:
         restaurant = db.get(Restaurant, restaurant_id)
@@ -216,9 +226,16 @@ def run_restaurant_pipeline(
             identity_conf = chosen.confidence
             dish_label = item.name
             sources.append(to_evidence(item, version, restaurant.name))
-            suggestion_src = _suggestion_source(db, item)
+            suggestion_src, older_reports = _suggestion_source(db, item, version)
             if suggestion_src:
                 sources.append(suggestion_src)
+            if older_reports:
+                limitations.append(
+                    f"{older_reports} unreviewed customer report(s) refer to an earlier version of this recipe "
+                    "and were not used."
+                )
+            link = AssessmentLink(kind="restaurant", restaurant_id=restaurant.id, menu_item_id=item.id,
+                                  recipe_version_id=version.id)
             if not dish.confident:
                 limitations.append(
                     f"We are not sure this is '{item.name}'. Confirm the dish from the menu for a reliable result."
@@ -257,6 +274,8 @@ def run_restaurant_pipeline(
                 ingredients=candidates_found.ingredients,
                 complete=False,
                 url=recipe_sources[0].url if recipe_sources else None,
+                reference=", ".join(r.url for r in recipe_sources[:3] if r.url),
+                verification="public",
             ))
             steps.append(Step(name="public_recipes", status="done", detail=f"{len(candidates_found.ingredients)} candidate ingredients."))
         else:
@@ -272,7 +291,7 @@ def run_restaurant_pipeline(
         identity_label=f"{dish_label} at {info.name}" + (f" ({info.branch_name})" if info.branch_name else "") if dish_label else info.name,
         limitations=limitations,
     )
-    result = analyze_for_user(db, user, sources, ctx)
+    result = analyze_for_user(db, user, sources, ctx, record=link)
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
     return RestaurantAnalysisOut(
         result=result,

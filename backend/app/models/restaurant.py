@@ -40,6 +40,23 @@ class CrossContactLevel(str, enum.Enum):
     possible = "possible"  # e.g. shared kitchen surfaces
 
 
+class CrossContactKind(str, enum.Enum):
+    shared_equipment = "shared_equipment"
+    shared_fryer = "shared_fryer"
+    preparation_area = "preparation_area"
+    utensils = "utensils"
+    storage = "storage"
+    manufacturing_facility = "manufacturing_facility"
+    supplier = "supplier"
+    other = "other"
+
+
+class CrossContactStatus(str, enum.Enum):
+    verified = "verified"  # checked by restaurant staff
+    reported = "reported"  # reported (e.g. by a supplier or a customer) and accepted, not checked in the kitchen
+    unknown = "unknown"  # recorded as a concern whose extent is not known
+
+
 class Restaurant(TimestampMixin, Base):
     __tablename__ = "restaurants"
 
@@ -121,6 +138,9 @@ class RecipeVersion(TimestampMixin, Base):
         Enum(VerificationStatus, name="verification_status"), default=VerificationStatus.unverified
     )
     change_note: Mapped[str] = mapped_column(Text, default="")
+    # Staff confirmed they assessed cross-contact for this version (so "no records" means "none found",
+    # not "never looked"). Never a safety claim.
+    cross_contact_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     verified_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -183,6 +203,10 @@ class CrossContactRecord(Base):
     allergen_id: Mapped[int] = mapped_column(ForeignKey("allergens.id", ondelete="RESTRICT"))
     level: Mapped[CrossContactLevel] = mapped_column(Enum(CrossContactLevel, name="cross_contact_level"))
     description: Mapped[str] = mapped_column(Text, default="")
+    kind: Mapped[CrossContactKind] = mapped_column(
+        Enum(CrossContactKind, name="cross_contact_kind"), default=CrossContactKind.other, server_default="other")
+    status: Mapped[CrossContactStatus] = mapped_column(
+        Enum(CrossContactStatus, name="cross_contact_status"), default=CrossContactStatus.verified, server_default="verified")
 
     recipe_version: Mapped[RecipeVersion] = relationship(back_populates="cross_contacts")
     allergen: Mapped["Allergen"] = relationship()  # noqa: F821

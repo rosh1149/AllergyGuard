@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import enum
 from dataclasses import dataclass, field
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -95,6 +96,10 @@ class CrossContactDecl:
     allergen_code: str
     level: str = "possible"  # "known" | "possible"
     description: str = ""
+    # shared_equipment | shared_fryer | preparation_area | utensils | storage | manufacturing_facility |
+    # supplier | precautionary_label | other
+    kind: str = "other"
+    status: str = "verified"  # verified | reported | unknown
 
 
 @dataclass
@@ -117,6 +122,16 @@ class EvidenceSource:
     confidence: float = 1.0
     url: str | None = None
     note: str = ""
+    # Provenance: what exactly the evidence describes ("barcode 5000159407236", "recipe v3"), how it is
+    # verified (label | verified | unverified | community | public | customer) and when it was last
+    # known to be correct (verified, updated or photographed). None = unknown.
+    reference: str = ""
+    verification: str = ""
+    as_of: datetime | None = None
+    # Days after which the source is too old to rule allergens out (None = no limit).
+    max_age_days: int | None = None
+    # Whether cross-contact was assessed by the source. None = not applicable / not stated.
+    cross_contact_assessed: bool | None = None
 
 
 @dataclass
@@ -125,6 +140,7 @@ class AnalysisContext:
     identity_confidence: float | None = None
     identity_label: str = ""  # e.g. "Brand X Oat Biscuits 200g" or "Butter Chicken"
     limitations: list[str] = field(default_factory=list)  # pipeline-level, e.g. "Image is blurry"
+    now: datetime | None = None  # evaluation time (defaults to the current time)
 
 
 @dataclass
@@ -150,6 +166,13 @@ class EvidenceRef(BaseModel):
     concept: str = ""  # ingredient concept slug, when the finding came through the knowledge layer
     relationship_path: str = ""  # e.g. "sodium caseinate, derived from casein, is a milk protein, ..."
     certainty: str = ""  # definite | possible (concept relationships)
+    match_confidence: float | None = None
+    # Provenance copied from the source, so each finding stands on its own.
+    source_reference: str = ""
+    source_verification: str = ""
+    source_as_of: datetime | None = None
+    collected_at: datetime | None = None
+    conflict_ids: list[str] = Field(default_factory=list)
 
 
 class IngredientResolution(BaseModel):
@@ -185,13 +208,20 @@ class AllergenAssessment(BaseModel):
     evidence: list[EvidenceRef] = Field(default_factory=list)
     # Jurisdictions whose allergen-labelling rules list this allergen (regulatory, not scientific).
     regulated_in: list[str] = Field(default_factory=list)
+    # What the outcome rests on: direct_ingredient | derived_ingredient | declared_by_source |
+    # cross_contact | possible_source | unverified_source | free_from_claim |
+    # not_found_in_verified_records | insufficient_evidence
+    basis: list[str] = Field(default_factory=list)
 
 
 class Conflict(BaseModel):
-    kind: str  # allergen_disagreement | ingredient_list_mismatch | declaration_mismatch
+    id: str = ""
+    # allergen_disagreement | ingredient_list_mismatch | declaration_mismatch | cross_contact_disagreement
+    kind: str
     allergen_code: str | None = None
     description: str
     source_ids: list[str]
+    resolution: str = ""  # how the engine resolved it (the cautious finding is always kept)
 
 
 class SourceSummary(BaseModel):
@@ -205,6 +235,13 @@ class SourceSummary(BaseModel):
     confidence: float
     used_for_absence: bool
     not_used_for_absence_reason: str = ""
+    reference: str = ""
+    verification: str = ""
+    as_of: datetime | None = None
+    age_days: int | None = None
+    fresh: bool = True
+    completeness: str = "complete"  # complete | partial | unavailable | conflicting
+    unresolved_items: list[str] = Field(default_factory=list)
 
 
 class AnalysisResult(BaseModel):
@@ -219,6 +256,8 @@ class AnalysisResult(BaseModel):
     nonspecific_ingredients: list[str]
     ingredients: list[IngredientResolution] = Field(default_factory=list)
     knowledge_version: int = 0
+    assessment_id: int | None = None  # the stored record of this assessment (set by the service)
+    evaluated_at: datetime | None = None
     explanation: str = ""
     explanation_source: str = "template"  # template | llm
     disclaimer: str = (

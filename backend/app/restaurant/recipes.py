@@ -7,6 +7,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.engine.knowledge import KnowledgeBase
 from app.engine.types import CrossContactDecl, EvidenceSource, SourceType
 from app.models import (
@@ -29,6 +30,7 @@ from app.schemas.restaurant import (
     IngredientOut,
     RecipeIn,
     RecipeVersionOut,
+    VersionChanges,
 )
 
 
@@ -82,6 +84,7 @@ def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -
         is_current=True,
         verification_status=VerificationStatus.verified if recipe.mark_verified else VerificationStatus.unverified,
         change_note=recipe.change_note,
+        cross_contact_reviewed=recipe.cross_contact_reviewed,
         created_by_id=actor.id,
         verified_by_id=actor.id if recipe.mark_verified else None,
         verified_at=utcnow() if recipe.mark_verified else None,
@@ -119,6 +122,8 @@ def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -
                 allergen_id=allergens[cc.allergen_code].id,
                 level=cc.level,
                 description=cc.description,
+                kind=cc.kind,
+                status=cc.status,
             )
         )
     db.flush()
@@ -144,9 +149,10 @@ def snapshot(version: RecipeVersion | None) -> RecipeIn:
         ],
         dish_allergen_codes=dish_codes,
         cross_contacts=[
-            CrossContactIn(allergen_code=c.allergen.code, level=c.level, description=c.description)
+            CrossContactIn(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status)
             for c in version.cross_contacts
         ],
+        cross_contact_reviewed=version.cross_contact_reviewed,
     )
 
 
@@ -197,10 +203,32 @@ def version_out(db: Session, kb: KnowledgeBase, version: RecipeVersion) -> Recip
         ],
         dish_allergen_codes=sorted(dish_codes),
         cross_contacts=[
-            CrossContactOut(allergen_code=c.allergen.code, level=c.level, description=c.description)
+            CrossContactOut(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status)
             for c in version.cross_contacts
         ],
+        cross_contact_reviewed=version.cross_contact_reviewed,
+        changes=version_changes(version),
         warnings=warnings_for(kb, version),
+    )
+
+
+def _contents(v: RecipeVersion) -> tuple[set[str], set[str], set[str]]:
+    return ({i.name.lower() for i in v.ingredients}, {ar.allergen.code for ar in v.allergen_records},
+            {f"{c.allergen.code} ({c.kind.value})" for c in v.cross_contacts})
+
+
+def version_changes(version: RecipeVersion) -> VersionChanges | None:
+    """Ingredient, allergen and cross-contact differences from the previous version of the dish."""
+    earlier = [v for v in version.menu_item.recipe_versions if v.version_number < version.version_number]
+    if not earlier:
+        return None
+    prev = max(earlier, key=lambda v: v.version_number)
+    (ia, aa, ca), (ib, ab, cb) = _contents(version), _contents(prev)
+    return VersionChanges(
+        previous_version=prev.version_number,
+        ingredients_added=sorted(ia - ib), ingredients_removed=sorted(ib - ia),
+        allergens_added=sorted(aa - ab), allergens_removed=sorted(ab - aa),
+        cross_contact_added=sorted(ca - cb), cross_contact_removed=sorted(cb - ca),
     )
 
 
@@ -213,7 +241,13 @@ def to_evidence(item: MenuItem, version: RecipeVersion, restaurant_name: str) ->
         ingredients=[i.name for i in version.ingredients],
         declared_allergens=sorted({ar.allergen.code for ar in version.allergen_records}),
         cross_contact=[
-            CrossContactDecl(c.allergen.code, c.level.value, c.description) for c in version.cross_contacts
+            CrossContactDecl(c.allergen.code, c.level.value, c.description, kind=c.kind.value, status=c.status.value)
+            for c in version.cross_contacts
         ],
         complete=True,
+        reference=f"{restaurant_name} / {item.branch.name} / {item.name} / recipe v{version.version_number}",
+        verification="verified" if verified else "unverified",
+        as_of=(version.verified_at or version.created_at) if verified else version.created_at,
+        max_age_days=get_settings().restaurant_record_max_age_days if verified else None,
+        cross_contact_assessed=version.cross_contact_reviewed or bool(version.cross_contacts),
     )

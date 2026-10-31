@@ -2,7 +2,8 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from app.api.deps import DB, CurrentCustomer
-from app.engine.service import analyze_for_user
+from app.engine.service import AssessmentLink, analyze_for_user
+from app.models.common import utcnow
 from app.engine.types import AnalysisContext, AnalysisResult, EvidenceSource, SourceType
 
 router = APIRouter(prefix="/analyze", tags=["analysis"])
@@ -23,6 +24,9 @@ def analyze_text(data: TextAnalysisIn, user: CurrentCustomer, db: DB) -> Analysi
         name=data.product_name or "Ingredient list you entered",
         ingredients_text=data.ingredients_text,
         cross_contact_text=data.may_contain_text or None,
+        reference="label text typed by the customer",
+        verification="label",
+        as_of=utcnow(),
     )
     ctx = AnalysisContext(identity_label=data.product_name)
-    return analyze_for_user(db, user, [source], ctx)
+    return analyze_for_user(db, user, [source], ctx, record=AssessmentLink(kind="text"))

@@ -8,7 +8,10 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.engine.service import analyze_for_user
+from app.core.config import get_settings
+from app.engine.service import AssessmentLink, analyze_for_user
+from app.models.common import utcnow
+from app.packaged.snapshots import record_snapshot
 from app.engine.types import (
     MIN_IDENTITY_CONFIDENCE,
     AnalysisContext,
@@ -165,6 +168,7 @@ def run_packaged_pipeline(
 ) -> PackagedAnalysisOut:
     steps: list[Step] = []
     limitations: list[str] = []
+    now = utcnow()
     for i, img in enumerate(images, 1):
         for issue in img.issues:
             limitations.append(f"Photo {i}: {issue}" if len(images) > 1 else issue)
@@ -245,10 +249,14 @@ def run_packaged_pipeline(
                 ingredients_text=section.ingredients_text,
                 complete=section.found_heading,
                 confidence=ocr.confidence,
+                reference=f"label photo {idx + 1}",
+                verification="label",
+                as_of=now,
             )
         )
 
     product_info = None
+    snapshot_id = None
     p = ident.product
     if p:
         product_info = ProductInfo(
@@ -263,6 +271,13 @@ def run_packaged_pipeline(
             confident=ident.confidence >= MIN_IDENTITY_CONFIDENCE,
         )
         if p.ingredients_text or p.allergen_codes or p.trace_codes:
+            snap, changes = record_snapshot(db, p)
+            snapshot_id = snap.id
+            if changes:
+                limitations.append(
+                    "This product's database record has changed since we last saw it ("
+                    + "; ".join(changes) + "). The product may have been reformulated: check the package label."
+                )
             sources.append(
                 EvidenceSource(
                     id=f"off:{p.barcode}",
@@ -270,10 +285,17 @@ def run_packaged_pipeline(
                     name=f"Open Food Facts: {p.display_name or p.barcode}",
                     ingredients_text=p.ingredients_text or None,
                     declared_allergens=p.allergen_codes,
-                    cross_contact=[CrossContactDecl(c, "possible", "Listed as traces") for c in p.trace_codes],
+                    cross_contact=[
+                        CrossContactDecl(c, "possible", "Listed as traces", kind="precautionary_label", status="reported")
+                        for c in p.trace_codes
+                    ],
                     complete=bool(p.ingredients_text),
                     url=p.url,
                     note="Community-maintained database; may be out of date.",
+                    reference=f"barcode {p.barcode}",
+                    verification="community",
+                    as_of=p.updated_at,
+                    max_age_days=get_settings().product_record_max_age_days,
                 )
             )
             limitations.append(
@@ -294,7 +316,10 @@ def run_packaged_pipeline(
         identity_label=identity_label,
         limitations=limitations,
     )
-    result = analyze_for_user(db, user, sources, ctx)
+    result = analyze_for_user(
+        db, user, sources, ctx,
+        record=AssessmentLink(kind="packaged", barcode=p.barcode if p else None, product_snapshot_id=snapshot_id),
+    )
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
 
     return PackagedAnalysisOut(
