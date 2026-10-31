@@ -13,15 +13,19 @@ export function PackagedCheckPage() {
   const [error, setError] = useState<unknown>(null);
   const [data, setData] = useState<PackagedAnalysis | null>(null);
 
-  const submit = async (e: FormEvent) => {
+  const submit = (e: FormEvent) => {
     e.preventDefault();
-    if (!photos.length && !barcode.trim() && !productName.trim()) {
+    run(barcode);
+  };
+
+  const run = async (code: string) => {
+    if (!photos.length && !code.trim() && !productName.trim()) {
       setError(new Error("Add a photo, or enter a barcode or product name."));
       return;
     }
     const fd = new FormData();
     photos.forEach((p) => fd.append("images", p));
-    fd.append("barcode", barcode.trim());
+    fd.append("barcode", code.trim());
     fd.append("product_name", productName.trim());
     setBusy(true);
     setError(null);
@@ -74,6 +78,19 @@ export function PackagedCheckPage() {
                   <span className={`badge ${data.product.confident ? "ok" : "o-UNKNOWN"}`}>
                     {data.product.confident ? "Confident match" : "Possible match"}
                   </span>
+                </div>
+              </div>
+            )}
+            {data.needs_confirmation && data.product_candidates && data.product_candidates.length > 0 && (
+              <div className="card">
+                <h3>Which product is it?</h3>
+                <p className="muted">Several products match. Until you choose, the product database isn't treated as reliable.</p>
+                <div className="row">
+                  {data.product_candidates.map((c) => (
+                    <button key={c.barcode} className="small" onClick={() => { setBarcode(c.barcode); run(c.barcode); }}>
+                      {c.name} <small className="muted">({c.barcode})</small>
+                    </button>
+                  ))}
                 </div>
               </div>
             )}

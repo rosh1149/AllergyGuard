@@ -46,6 +46,16 @@ export interface EvidenceRef {
   ingredient: string;
   matched_term: string;
   detail: string;
+  matched_as?: string;
+  match_method?: string;
+  match_confidence?: number | null;
+  concept?: string;
+  relationship_path?: string;
+  certainty?: string;
+  source_reference?: string;
+  source_verification?: string;
+  source_as_of?: string | null;
+  conflict_ids?: string[];
 }
 
 export interface AllergenAssessment {
@@ -56,9 +66,14 @@ export interface AllergenAssessment {
   outcome_label: string;
   reasons: string[];
   evidence: EvidenceRef[];
+  basis?: string[];
+  rules?: string[];
+  regulated_in?: string[];
 }
 
 export interface Conflict {
+  id?: string;
+  resolution?: string;
   kind: string;
   allergen_code: string | null;
   description: string;
@@ -76,6 +91,20 @@ export interface SourceSummary {
   confidence: number;
   used_for_absence: boolean;
   not_used_for_absence_reason: string;
+  reference?: string;
+  verification?: string;
+  as_of?: string | null;
+  age_days?: number | null;
+  fresh?: boolean;
+  completeness?: "complete" | "partial" | "unavailable" | "conflicting";
+  unresolved_items?: string[];
+}
+
+export interface StageRecord {
+  name: string;
+  status: string;
+  duration_ms: number | null;
+  counts: Record<string, number | string>;
 }
 
 export interface AnalysisResult {
@@ -91,12 +120,18 @@ export interface AnalysisResult {
   explanation: string;
   explanation_source: "template" | "llm";
   disclaimer: string;
+  knowledge_version?: number;
+  assessment_id?: number | null;
+  evaluated_at?: string | null;
+  trace?: StageRecord[];
+  duration_ms?: number | null;
 }
 
 export interface Step {
   name: string;
   status: "done" | "skipped" | "failed";
   detail: string;
+  duration_ms?: number | null;
 }
 
 export interface PackagedAnalysis {
@@ -121,6 +156,8 @@ export interface PackagedAnalysis {
   };
   images: { width: number; height: number; sharpness: number; brightness: number; issues: string[] }[];
   steps: Step[];
+  product_candidates?: { barcode: string; name: string; similarity: number }[];
+  needs_confirmation?: boolean;
 }
 
 export interface DishCandidate {
@@ -153,6 +190,7 @@ export interface RestaurantAnalysis {
   public_recipe_sources: { title: string; url: string }[];
   steps: Step[];
   can_submit_feedback: boolean;
+  needs_confirmation?: boolean;
 }
 
 // ---- restaurants ----
@@ -254,6 +292,28 @@ export interface Member {
 }
 
 export type CrossContactLevel = "known" | "possible";
+export type CrossContactKind =
+  | "shared_equipment" | "shared_fryer" | "preparation_area" | "utensils" | "storage"
+  | "manufacturing_facility" | "supplier" | "other";
+export type CrossContactStatus = "verified" | "reported" | "unknown";
+
+export interface CrossContactRecord {
+  allergen_code: string;
+  level: CrossContactLevel;
+  description: string;
+  kind: CrossContactKind;
+  status: CrossContactStatus;
+}
+
+export interface VersionChanges {
+  previous_version: number | null;
+  ingredients_added: string[];
+  ingredients_removed: string[];
+  allergens_added: string[];
+  allergens_removed: string[];
+  cross_contact_added: string[];
+  cross_contact_removed: string[];
+}
 
 export interface IngredientOut {
   id: number;
@@ -274,7 +334,9 @@ export interface RecipeVersion {
   verified_at: string | null;
   ingredients: IngredientOut[];
   dish_allergen_codes: string[];
-  cross_contacts: { allergen_code: string; level: CrossContactLevel; description: string }[];
+  cross_contacts: CrossContactRecord[];
+  cross_contact_reviewed?: boolean;
+  changes?: VersionChanges | null;
   warnings: { ingredient: string; allergen_code: string; allergen_name: string; message: string }[];
 }
 
@@ -299,7 +361,8 @@ export interface MenuItemDetail extends MenuItem {
 export interface RecipeInput {
   ingredients: { name: string; notes: string; allergen_codes: string[] }[];
   dish_allergen_codes: string[];
-  cross_contacts: { allergen_code: string; level: CrossContactLevel; description: string }[];
+  cross_contacts: CrossContactRecord[];
+  cross_contact_reviewed: boolean;
   change_note: string;
   mark_verified: boolean;
 }
@@ -312,4 +375,88 @@ export interface AuditEntry {
   entity_id: number | null;
   details: Record<string, unknown>;
   created_at: string;
+}
+
+// ---- history, review queue, monitoring ----
+
+export interface AssessmentSummary {
+  id: number;
+  kind: "packaged" | "restaurant" | "text";
+  label: string;
+  overall_outcome: Outcome;
+  outcomes: Record<string, Outcome>;
+  knowledge_version: number;
+  created_at: string;
+  outdated: boolean;
+  outdated_reasons: string[];
+}
+
+export interface AssessmentDetail extends AssessmentSummary {
+  sources: Record<string, unknown>[];
+  result: AnalysisResult;
+}
+
+export type ReviewKind =
+  | "low_confidence_product" | "multiple_product_matches" | "unreadable_label" | "incomplete_label"
+  | "low_confidence_dish" | "multiple_dish_matches" | "unmatched_dish";
+
+export interface ReviewItem {
+  id: number;
+  kind: ReviewKind;
+  status: "open" | "resolved" | "dismissed";
+  restaurant_id: number | null;
+  key: string;
+  summary: string;
+  details: Record<string, unknown>;
+  occurrences: number;
+  first_seen: string;
+  last_seen: string;
+  resolution_note: string;
+  resolved_at: string | null;
+}
+
+export interface UnresolvedIngredient {
+  id: number;
+  text: string;
+  occurrences: number;
+  source_types: string[];
+  first_seen: string;
+  last_seen: string;
+  status: string;
+}
+
+export interface SourceAdapterInfo {
+  name: string;
+  source_type: string;
+  description: string;
+  health: { calls: number; failures: number; last_status?: string; last_failure?: string; average_latency_ms?: number };
+}
+
+export interface Percentiles { count?: number; p50: number | null; p95: number | null; max?: number }
+
+export interface Metrics {
+  window_hours: number;
+  assessments: {
+    total: number;
+    by_kind: Record<string, number>;
+    overall_outcomes: Record<string, number>;
+    latency_ms: Record<string, Percentiles>;
+    stage_latency_ms: Record<string, Percentiles>;
+    with_conflicts: number;
+    with_conflicts_share: number | null;
+    low_confidence_identification: number;
+    low_confidence_share: number | null;
+    with_unresolved_ingredients: number;
+    with_unresolved_share: number | null;
+    with_failed_stage: number;
+    failure_rate: number | null;
+    failed_stages: Record<string, number>;
+    decision_rules: Record<string, number>;
+  };
+  review_queue_open: Record<string, number>;
+  unresolved_ingredients_open: number;
+  knowledge_version: number;
+  caches: Record<string, { hits: number; misses: number; hit_rate?: number | null; items?: number }>;
+  background_jobs: Record<string, number | string>;
+  image_jobs: Record<string, number>;
 }

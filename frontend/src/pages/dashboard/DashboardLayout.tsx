@@ -35,6 +35,7 @@ export function DashboardLayout() {
           <NavLink to="/dashboard/feedback">
             Feedback {dash.pending_feedback > 0 && <span className="badge o-POSSIBLE_CROSS_CONTACT">{dash.pending_feedback}</span>}
           </NavLink>
+          <NavLink to="/dashboard/review">Uncertain matches</NavLink>
           <NavLink to="/dashboard/branches">Branches</NavLink>
           <NavLink to="/dashboard/team">Team</NavLink>
           <NavLink to="/dashboard/settings">Settings</NavLink>

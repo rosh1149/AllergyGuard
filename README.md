@@ -410,7 +410,34 @@ Recipe versions are snapshots: a change always creates a new version and old ver
 Versions report **warnings** when an ingredient name indicates an allergen the recipe doesn't
 declare (e.g. "ghee" without milk).
 
-## Frontend (Part 5)
+## Frontend (Part 5, extended in Step G)
+
+Screens added in Step G:
+
+- **Results:**
+  - Each allergen has a "Why" panel showing the evidence, the source, its verification and date, how
+    the ingredient was read, the relationship path and the decision rule.
+  - Each source shows its reference, its freshness and completeness, and any unidentified items.
+  - Each conflict shows how it was resolved.
+  - A "Processing details" table lists every stage with its timing.
+- **Customers:**
+  - Past checks (`/history`), with "may be outdated" flags.
+  - Choosing a product when several match.
+  - Answering a restaurant's question about a suggestion, and the two new suggestion types.
+  - Downloading their data and deleting their account.
+- **Restaurant dashboard:**
+  - In the feedback list: asking the customer a question, a "waiting for customer" tab, and each
+    suggestion's history and impact.
+  - In the recipe editor: the cause and status of each cross-contact record, and a "cross-contact
+    reviewed" flag.
+  - In the version history: changes between versions.
+  - A new page for uncertain dish matches.
+- **Administrators** (`/admin`, previously no screens): monitoring, the review queue, unidentified
+  ingredients, data-source health and the audit log.
+
+`frontend/e2e/step_g.cjs` walks through all of these in a browser (fresh database with demo data),
+including a phone-width check.
+
 
 React 19 + TypeScript + Vite + React Router, no UI framework (`frontend/src/styles.css`).
 

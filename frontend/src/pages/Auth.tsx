@@ -28,7 +28,7 @@ export function LoginPage() {
     setError(null);
     try {
       const user = await login(email, password);
-      nav(user.role === "restaurant" ? "/dashboard" : "/");
+      nav(user.role === "restaurant" ? "/dashboard" : user.role === "admin" ? "/admin" : "/");
     } catch (err) {
       setError(err);
     } finally {

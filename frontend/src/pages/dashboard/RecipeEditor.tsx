@@ -1,12 +1,28 @@
 import { useState } from "react";
 import { api } from "../../api/client";
-import type { CrossContactLevel, RecipeInput, RecipeVersion } from "../../api/types";
+import type { CrossContactKind, CrossContactLevel, CrossContactRecord, CrossContactStatus, RecipeInput, RecipeVersion } from "../../api/types";
+
+export const CC_KINDS: Record<CrossContactKind, string> = {
+  shared_equipment: "Shared equipment",
+  shared_fryer: "Shared fryer or oil",
+  preparation_area: "Shared preparation area",
+  utensils: "Shared utensils",
+  storage: "Storage",
+  manufacturing_facility: "Supplier's facility",
+  supplier: "Supplier information",
+  other: "Other",
+};
+export const CC_STATUS: Record<CrossContactStatus, string> = {
+  verified: "Checked by staff",
+  reported: "Reported, not checked",
+  unknown: "Unknown",
+};
 import { useAllergens } from "../../components/useAllergens";
 import { ErrorAlert, Field } from "../../components/ui";
 import { useDash } from "./context";
 
 export function emptyRecipe(): RecipeInput {
-  return { ingredients: [{ name: "", notes: "", allergen_codes: [] }], dish_allergen_codes: [], cross_contacts: [], change_note: "", mark_verified: false };
+  return { ingredients: [{ name: "", notes: "", allergen_codes: [] }], dish_allergen_codes: [], cross_contacts: [], cross_contact_reviewed: false, change_note: "", mark_verified: false };
 }
 
 export function recipeFromVersion(v: RecipeVersion | null): RecipeInput {
@@ -14,7 +30,8 @@ export function recipeFromVersion(v: RecipeVersion | null): RecipeInput {
   return {
     ingredients: v.ingredients.map((i) => ({ name: i.name, notes: i.notes, allergen_codes: [...i.allergen_codes] })),
     dish_allergen_codes: [...v.dish_allergen_codes],
-    cross_contacts: v.cross_contacts.map((c) => ({ ...c })),
+    cross_contacts: v.cross_contacts.map((c) => ({ ...c, kind: c.kind ?? "other", status: c.status ?? "verified" })),
+    cross_contact_reviewed: Boolean(v.cross_contact_reviewed),
     change_note: "",
     mark_verified: false,
   };
@@ -61,6 +78,8 @@ export function RecipeEditor({
   const [checkMsg, setCheckMsg] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
 
+  const setCC = (i: number, patch: Partial<CrossContactRecord>) =>
+    onChange({ ...value, cross_contacts: value.cross_contacts.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
   const setIng = (i: number, patch: Partial<RecipeInput["ingredients"][number]>) =>
     onChange({ ...value, ingredients: value.ingredients.map((x, j) => (j === i ? { ...x, ...patch } : x)) });
 
@@ -123,26 +142,35 @@ export function RecipeEditor({
       <CodeToggles label="Dish-level allergens" value={value.dish_allergen_codes} onChange={(c) => onChange({ ...value, dish_allergen_codes: c })} />
 
       <h3 style={{ marginTop: "1.2rem" }}>Cross-contact</h3>
+      <p className="muted" style={{ fontSize: "0.88rem" }}>Where could an allergen get onto this dish? Record the cause and whether staff have checked it.</p>
       {value.cross_contacts.map((c, i) => (
-        <div className="row" key={i} style={{ marginBottom: "0.4rem" }}>
-          <select aria-label="Cross-contact allergen" value={c.allergen_code} style={{ maxWidth: 220 }}
-            onChange={(e) => onChange({ ...value, cross_contacts: value.cross_contacts.map((x, j) => (j === i ? { ...x, allergen_code: e.target.value } : x)) })}>
+        <div className="cc-row" key={i}>
+          <select aria-label="Cross-contact allergen" value={c.allergen_code} onChange={(e) => setCC(i, { allergen_code: e.target.value })}>
             <option value="">Allergen…</option>
             {allergens.map((a) => <option key={a.code} value={a.code}>{a.name}</option>)}
           </select>
-          <select aria-label="Cross-contact level" value={c.level} style={{ maxWidth: 140 }}
-            onChange={(e) => onChange({ ...value, cross_contacts: value.cross_contacts.map((x, j) => (j === i ? { ...x, level: e.target.value as CrossContactLevel } : x)) })}>
+          <select aria-label="Cross-contact cause" value={c.kind} onChange={(e) => setCC(i, { kind: e.target.value as CrossContactKind })}>
+            {Object.entries(CC_KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <select aria-label="Cross-contact level" value={c.level} onChange={(e) => setCC(i, { level: e.target.value as CrossContactLevel })}>
             <option value="possible">Possible</option>
             <option value="known">Known</option>
           </select>
-          <input aria-label="Cross-contact description" placeholder="e.g. shared fryer" value={c.description} style={{ flex: 1, minWidth: 160 }}
-            onChange={(e) => onChange({ ...value, cross_contacts: value.cross_contacts.map((x, j) => (j === i ? { ...x, description: e.target.value } : x)) })} />
+          <select aria-label="Cross-contact status" value={c.status} onChange={(e) => setCC(i, { status: e.target.value as CrossContactStatus })}>
+            {Object.entries(CC_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+          </select>
+          <input aria-label="Cross-contact description" placeholder="Details, e.g. fryer also used for satay" value={c.description}
+            onChange={(e) => setCC(i, { description: e.target.value })} />
           <button type="button" className="small danger" onClick={() => onChange({ ...value, cross_contacts: value.cross_contacts.filter((_, j) => j !== i) })}>Remove</button>
         </div>
       ))}
-      <button type="button" className="small" onClick={() => onChange({ ...value, cross_contacts: [...value.cross_contacts, { allergen_code: "", level: "possible", description: "" }] })}>
+      <button type="button" className="small" onClick={() => onChange({ ...value, cross_contacts: [...value.cross_contacts, { allergen_code: "", level: "possible", description: "", kind: "other", status: "verified" }] })}>
         + Add cross-contact
       </button>
+      <label className="check" style={{ marginTop: "0.6rem" }}>
+        <input type="checkbox" checked={value.cross_contact_reviewed} onChange={(e) => onChange({ ...value, cross_contact_reviewed: e.target.checked })} />
+        Cross-contact has been reviewed for this dish (no records then means none was found)
+      </label>
 
       {showNote && (
         <div style={{ marginTop: "1.2rem" }}>

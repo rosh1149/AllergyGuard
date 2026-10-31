@@ -212,7 +212,7 @@ export function RestaurantCheckPage() {
                 </div>
               </div>
             )}
-            {data.candidates.length > 0 && (!data.dish || !data.dish.confident) && (
+            {data.candidates.length > 0 && (data.needs_confirmation || !data.dish || !data.dish.confident) && (
               <div className="alert warn">
                 <strong>Is your dish one of these?</strong> Confirming it gives a reliable result.
                 <div className="row" style={{ marginTop: "0.5rem" }}>

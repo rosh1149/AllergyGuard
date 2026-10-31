@@ -1,11 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../../api/client";
-import type { MenuItem, MenuItemDetail, MenuItemStatus, RecipeInput } from "../../api/types";
+import type { MenuItem, MenuItemDetail, MenuItemStatus, RecipeInput, VersionChanges } from "../../api/types";
 import { useAllergens } from "../../components/useAllergens";
 import { ErrorAlert, Field, formatDate, Spinner } from "../../components/ui";
 import { useDash } from "./context";
-import { cleanRecipe, emptyRecipe, RecipeEditor, recipeFromVersion } from "./RecipeEditor";
+import { CC_KINDS, CC_STATUS, cleanRecipe, emptyRecipe, RecipeEditor, recipeFromVersion } from "./RecipeEditor";
 
 export function MenuPage() {
   const { rid, dash, canEdit } = useDash();
@@ -248,6 +248,7 @@ export function MenuItemPage() {
               </small>
               {v.change_note && <p style={{ margin: "0.2rem 0" }}>{v.change_note}</p>}
               <small>{v.ingredients.map((i) => i.name).join(", ")}</small>
+              {v.changes && <VersionDiff c={v.changes} name={name} />}
             </li>
           ))}
         </ul>
@@ -280,10 +281,48 @@ function RecipeSummary({ v, name }: { v: NonNullable<MenuItem["current_version"]
       {v.dish_allergen_codes.length > 0 && (
         <p style={{ marginTop: "0.8rem" }}><strong>Also contains: </strong>{v.dish_allergen_codes.map(name).join(", ")}</p>
       )}
-      <p style={{ marginTop: "0.8rem", marginBottom: 0 }}>
+      <div style={{ marginTop: "0.8rem" }}>
         <strong>Cross-contact: </strong>
-        {v.cross_contacts.length ? v.cross_contacts.map((c) => `${name(c.allergen_code)} (${c.level}${c.description ? `: ${c.description}` : ""})`).join("; ") : <span className="muted">none recorded</span>}
-      </p>
+        {v.cross_contacts.length ? (
+          <ul style={{ margin: "0.2rem 0 0", paddingLeft: "1.1rem" }}>
+            {v.cross_contacts.map((c, i) => (
+              <li key={i}>
+                {name(c.allergen_code)}: {CC_KINDS[c.kind] ?? c.kind} ({c.level})
+                {c.description && ` · ${c.description}`} <small className="muted">· {CC_STATUS[c.status] ?? c.status}</small>
+              </li>
+            ))}
+          </ul>
+        ) : <span className="muted">none recorded</span>}
+        <div>
+          <small className={v.cross_contact_reviewed ? "ok-text" : "muted"}>
+            {v.cross_contact_reviewed ? "Cross-contact reviewed by staff." : "Cross-contact not marked as reviewed: customers are told it wasn't assessed."}
+          </small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function VersionDiff({ c, name }: { c: VersionChanges; name: (c: string) => string }) {
+  // "peanuts (shared_fryer)" -> "Peanuts (shared fryer or oil)"
+  const cc = (s: string) => s.replace(/^(\S+) \((\w+)\)$/, (_, code: string, kind: string) =>
+    `${name(code)} (${(CC_KINDS[kind as keyof typeof CC_KINDS] ?? kind).toLowerCase()})`);
+  const parts: [string, string[], string][] = [
+    ["Ingredients added", c.ingredients_added, "diff-add"],
+    ["Ingredients removed", c.ingredients_removed, "diff-del"],
+    ["Allergens added", c.allergens_added.map(name), "diff-add"],
+    ["Allergens removed", c.allergens_removed.map(name), "diff-del"],
+    ["Cross-contact added", c.cross_contact_added.map(cc), "diff-add"],
+    ["Cross-contact removed", c.cross_contact_removed.map(cc), "diff-del"],
+  ];
+  const shown = parts.filter(([, v]) => v.length);
+  if (!shown.length) return <div><small className="muted">No ingredient or allergen changes from v{c.previous_version}.</small></div>;
+  return (
+    <div style={{ marginTop: "0.2rem" }}>
+      <small className="muted">Changes from v{c.previous_version}: </small>
+      {shown.map(([label, v, cls]) => (
+        <small key={label} style={{ marginRight: "0.6rem" }}>{label}: <span className={cls}>{v.join(", ")}</span></small>
+      ))}
     </div>
   );
 }
