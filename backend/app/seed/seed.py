@@ -177,4 +177,4 @@ def seed_demo(db: Session) -> None:
         db.flush()
         _recipe(db, allergens, item, ingredients, cross, owner.id)
     db.commit()
-    log.info("Seeded demo data (owner=%s, customer=%s)", DEMO_OWNER_EMAIL, DEMO_CUSTOMER_EMAIL)
+    log.info("Seeded demo data (demo accounts are listed in the README)")

@@ -31,4 +31,6 @@ def create_access_token(user_id: int, role: str) -> str:
 
 def decode_access_token(token: str) -> dict:
     settings = get_settings()
-    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm])
+    # Only the configured algorithm (never "none"); a token without an expiry or subject is refused.
+    return jwt.decode(token, settings.jwt_secret, algorithms=[settings.jwt_algorithm],
+                      options={"require": ["exp", "sub"]})

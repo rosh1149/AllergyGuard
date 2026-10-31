@@ -8,6 +8,9 @@ from dataclasses import dataclass, field
 from PIL import Image, ImageFilter, ImageOps, ImageStat, UnidentifiedImageError
 
 ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}
+# A phone photo is 12-50 megapixels. Anything larger is refused before it is decoded, so a small
+# compressed file cannot expand into gigabytes of memory (a "decompression bomb").
+MAX_PIXELS = 60_000_000
 MIN_SIDE = 300
 BLUR_THRESHOLD = 60.0  # variance of the edge image; lower = blurrier
 DARK_THRESHOLD = 70  # 99th-percentile brightness below this = too dark
@@ -53,6 +56,8 @@ def load_image(data: bytes, max_bytes: int) -> LoadedImage:
         img.verify()
         img = Image.open(io.BytesIO(data))
         fmt = img.format or ""
+        if img.width * img.height > MAX_PIXELS:  # checked before decoding: a small file can unpack huge
+            raise ImageError(f"The image is too large ({img.width}x{img.height} pixels).")
         img = ImageOps.exif_transpose(img).convert("RGB")
     except (UnidentifiedImageError, OSError, Image.DecompressionBombError) as e:
         raise ImageError("The file is not a readable image.") from e
