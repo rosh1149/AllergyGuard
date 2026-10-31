@@ -132,7 +132,7 @@ sources_router = APIRouter(prefix="/sources", tags=["source adapters (admin)"])
 def list_sources(_: CurrentAdmin) -> list[dict]:
     """Registered source adapters and their health since the server started."""
     from app.sources import ADAPTERS, adapter_health
-    import app.sources.label, app.sources.open_food_facts, app.sources.restaurant  # noqa: E401,F401  (register all)
+    import app.sources.label, app.sources.open_food_facts, app.sources.restaurant, app.sources.web  # noqa: E401,F401  (register all)
 
     health = adapter_health()
     return [

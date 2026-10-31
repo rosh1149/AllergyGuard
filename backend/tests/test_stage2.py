@@ -8,7 +8,7 @@ import pytest
 from app.engine import AllergyProfile, EvidenceSource, Outcome, SourceType, assess
 from app.engine.knowledge import KnowledgeBase
 from app.engine.types import ABSENCE_CAPABLE, AUTHORITATIVE, SOURCE_POLICY, AnalysisContext, CrossContactDecl
-from tests.helpers import add_item, new_customer, new_restaurant
+from tests.helpers import new_customer, new_restaurant
 from tests.kb_fixture import build_kb
 
 P, X, U, NL = (Outcome.PRESENT, Outcome.POSSIBLE_CROSS_CONTACT, Outcome.UNKNOWN,

@@ -1,5 +1,5 @@
 from app.models.allergen import Allergen, AllergenTerm, AllergenTermKind
-from app.models.evidence import Assessment, ProductSnapshot
+from app.models.evidence import Assessment, ManufacturerSite, ProductSnapshot
 from app.models.feedback import PENDING_STATUSES, AuditRecord, FeedbackSuggestion, SuggestionStatus, SuggestionType
 from app.models.knowledge import (
     ACTIVE_STATUSES,
@@ -41,6 +41,7 @@ from app.models.review import RESTAURANT_KINDS, ReviewItem, ReviewKind, ReviewSt
 from app.models.user import CustomerAllergy, CustomerCustomAllergy, User, UserRole
 
 __all__ = [
+    "ManufacturerSite",
     "ConceptType",
     "RESTAURANT_KINDS",
     "ReviewItem",

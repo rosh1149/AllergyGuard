@@ -183,6 +183,12 @@ export function RecipeEditor({
           </Field>
         </div>
       )}
+      {showNote && (
+        <Field label="Takes effect" hint="Leave empty to apply now. A scheduled change applies from that moment; checks before then use the current recipe.">
+          <input type="datetime-local" value={value.effective_from ? value.effective_from.slice(0, 16) : ""}
+            onChange={(e) => onChange({ ...value, effective_from: e.target.value ? new Date(e.target.value).toISOString() : null })} />
+        </Field>
+      )}
       {canVerify && (
         <label className="check" style={{ marginTop: "0.5rem" }}>
           <input type="checkbox" checked={value.mark_verified} onChange={(e) => onChange({ ...value, mark_verified: e.target.checked })} />

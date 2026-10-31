@@ -30,7 +30,7 @@ from app.packaged.images import LoadedImage
 from app.packaged.pipeline import Step
 from app.restaurant.fallback import RecipeSource, public_recipe_candidates, staff_questions
 from app.core.timing import StageTimer
-from app.restaurant.recipes import current_version
+from app.restaurant.recipes import current_version, effective_from, scheduled_version
 from app.review.queue import ReviewFlag, queue_flags_later
 from app.sources.restaurant import CustomerReportsAdapter, PublicRecipeAdapter, RestaurantRecordAdapter
 from app.restaurant.vision import identify_dish
@@ -227,6 +227,13 @@ def run_restaurant_pipeline(
             older_reports = reports.payload or 0
             if reports.status.failed:
                 limitations.append("Unreviewed customer reports could not be loaded.")
+            upcoming = scheduled_version(item)
+            if upcoming is not None:
+                limitations.append(
+                    f"The restaurant has scheduled a recipe change (v{upcoming.version_number}) from "
+                    f"{effective_from(upcoming):%Y-%m-%d %H:%M} UTC. This check uses the recipe in effect now "
+                    f"(v{version.version_number}); check again after that time."
+                )
             if older_reports:
                 limitations.append(
                     f"{older_reports} unreviewed customer report(s) refer to an earlier version of this recipe "
@@ -246,10 +253,24 @@ def run_restaurant_pipeline(
             )
             needs_confirmation = bool(candidates)
             if dish_name:
+                # The dish may be on another branch's menu. Its records describe that branch's kitchen, so
+                # they are never used here; the customer is told where the dish is listed instead.
+                elsewhere = sorted({
+                    i.branch.name for i in db.scalars(select(MenuItem).where(
+                        MenuItem.restaurant_id == restaurant.id, MenuItem.branch_id != branch.id,
+                        MenuItem.status == MenuItemStatus.available)).all()
+                    if name_similarity(dish_name, i.name) >= MIN_IDENTITY_CONFIDENCE and current_version(i) is not None
+                })
+                if elsewhere:
+                    limitations.append(
+                        f"'{dish_name}' is on the menu at {', '.join(elsewhere)}, not at {branch.name}. Recipes and "
+                        "kitchen practices can differ between branches, so those records were not used."
+                    )
                 flags.append(ReviewFlag(
                     ReviewKind.unmatched_dish, dish_name,
                     f"A customer asked about '{dish_name}', which did not match the {branch.name} menu.",
-                    {"branch": branch.name, "closest": [c.model_dump() for c in candidates]}, restaurant.id,
+                    {"branch": branch.name, "closest": [c.model_dump() for c in candidates], "listed_at": elsewhere},
+                    restaurant.id,
                 ))
     else:
         info = RestaurantInfo(registered=False, name=restaurant_name.strip() or "Unregistered restaurant", location=location.strip())

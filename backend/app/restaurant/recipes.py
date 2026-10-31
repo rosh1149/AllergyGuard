@@ -3,6 +3,8 @@ version. Older versions are kept unchanged, so the history of trusted records ca
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
+
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -65,14 +67,46 @@ def allergen_map(db: Session, codes: set[str]) -> dict[str, Allergen]:
     return found
 
 
-def current_version(item: MenuItem) -> RecipeVersion | None:
-    return next((v for v in item.recipe_versions if v.is_current), None)
+def effective_from(v: RecipeVersion) -> datetime:
+    return v.effective_from or v.created_at
+
+
+def current_version(item: MenuItem, at: datetime | None = None) -> RecipeVersion | None:
+    """The version in effect at `at` (default now): the newest whose effective-from has passed.
+    A version scheduled for later never applies early."""
+    at = at or utcnow()
+    applicable = [v for v in item.recipe_versions if effective_from(v) <= at]
+    return max(applicable, key=lambda v: v.version_number) if applicable else None
+
+
+def latest_version(item: MenuItem) -> RecipeVersion | None:
+    """The newest version, scheduled or not (the base for the next edit)."""
+    return max(item.recipe_versions, key=lambda v: v.version_number) if item.recipe_versions else None
+
+
+def scheduled_version(item: MenuItem, at: datetime | None = None) -> RecipeVersion | None:
+    at = at or utcnow()
+    future = [v for v in item.recipe_versions if effective_from(v) > at]
+    return min(future, key=lambda v: effective_from(v)) if future else None
 
 
 def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -> RecipeVersion:
     codes = {c for i in recipe.ingredients for c in i.allergen_codes} | set(recipe.dish_allergen_codes)
     codes |= {c.allergen_code for c in recipe.cross_contacts}
     allergens = allergen_map(db, codes)
+    now = utcnow()
+    if recipe.effective_from is not None:
+        eff = recipe.effective_from if recipe.effective_from.tzinfo else recipe.effective_from.replace(tzinfo=UTC)
+        if eff < now - timedelta(minutes=1):
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                                "A recipe version cannot take effect in the past; earlier checks must stay as they were.")
+    else:
+        eff = None
+    pending = scheduled_version(item, now)
+    if pending is not None and (eff is None or eff < effective_from(pending)):
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Recipe v{pending.version_number} is already scheduled from {effective_from(pending):%Y-%m-%d %H:%M} UTC. "
+                            "Schedule this change after it, or wait until it takes effect.")
 
     for v in item.recipe_versions:
         v.is_current = False
@@ -85,6 +119,7 @@ def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -
         verification_status=VerificationStatus.verified if recipe.mark_verified else VerificationStatus.unverified,
         change_note=recipe.change_note,
         cross_contact_reviewed=recipe.cross_contact_reviewed,
+        effective_from=eff,
         created_by_id=actor.id,
         verified_by_id=actor.id if recipe.mark_verified else None,
         verified_at=utcnow() if recipe.mark_verified else None,
@@ -198,6 +233,9 @@ def version_out(db: Session, kb: KnowledgeBase, version: RecipeVersion) -> Recip
         id=version.id,
         version_number=version.version_number,
         is_current=version.is_current,
+        effective_from=effective_from(version),
+        applies_now=current_version(version.menu_item) is version,
+        scheduled=effective_from(version) > utcnow(),
         verification_status=version.verification_status,
         change_note=version.change_note,
         created_at=version.created_at,

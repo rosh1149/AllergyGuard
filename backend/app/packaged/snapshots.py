@@ -87,3 +87,22 @@ def saved_copy(db: Session, barcode: str) -> tuple[OffProduct, ProductSnapshot] 
         url=f"{get_settings().off_base_url.rstrip('/')}/product/{snap.barcode}", updated_at=snap.source_updated_at,
     )
     return p, snap
+
+
+def record_page(db: Session, product, src) -> None:
+    """Keep each distinct external page version used as evidence (its ingredient text and where it came from)."""
+    from urllib.parse import urlparse
+
+    source = f"{'manufacturer' if src.type.value == 'manufacturer' else 'web'}:{urlparse(src.url or '').netloc}"[:40]
+    h = hashlib.sha256(json.dumps([src.url, src.ingredients_text]).encode()).hexdigest()
+    key = product.barcode or product.label.lower()[:20]
+    existing = db.scalar(select(ProductSnapshot).where(ProductSnapshot.barcode == key, ProductSnapshot.source == source,
+                                                       ProductSnapshot.content_hash == h))
+    now = utcnow()
+    if existing:
+        existing.last_seen = now
+    else:
+        db.add(ProductSnapshot(barcode=key, source=source, content_hash=h, name=src.name[:200],
+                               ingredients_text=src.ingredients_text or "", allergen_codes=[], trace_codes=[],
+                               source_updated_at=src.as_of, first_seen=now, last_seen=now))
+    db.flush()

@@ -141,6 +141,9 @@ class RecipeVersion(TimestampMixin, Base):
     # Staff confirmed they assessed cross-contact for this version (so "no records" means "none found",
     # not "never looked"). Never a safety claim.
     cross_contact_reviewed: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+    # When this version starts to apply (None = from when it was created). Lets a restaurant schedule a
+    # recipe change; checks always use the version in effect at the time of the check.
+    effective_from: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     verified_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

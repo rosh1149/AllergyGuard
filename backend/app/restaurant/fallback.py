@@ -6,6 +6,8 @@ Public recipes describe how a dish is commonly made. They are passed to the engi
 
 from __future__ import annotations
 
+import re
+
 import logging
 
 from pydantic import BaseModel, Field
@@ -65,7 +67,7 @@ def public_recipe_candidates(dish: str, context: str) -> RecipeCandidates | None
         log.warning("Public recipe search: stop_reason=%s", response.stop_reason)
         return None
     out = response.parsed_output
-    out.ingredients = [i.strip() for i in out.ingredients if i.strip()][:60]
+    out.ingredients = clean_candidate_ingredients(out.ingredients)
     out.sources = [s for s in out.sources if s.url.startswith(("http://", "https://"))][:5]
     return out if out.ingredients else None
 
@@ -116,3 +118,20 @@ def staff_questions(result: AnalysisResult, dish: str, registered: bool) -> list
         qs.append("Do you have an allergen menu or ingredient list for this dish that I can see?")
     qs.append("Can you tell the kitchen about my allergies when the order is placed?")
     return qs
+
+
+_INGREDIENT_TEXT = re.compile(r"^[a-z0-9][a-z0-9 ,'()&/%.+-]{0,79}$")
+_NOT_AN_INGREDIENT = re.compile(r"https?://|www\.|\b(ignore|instruction|assistant|system|prompt|safe|allergen[- ]free)\b")
+
+
+def clean_candidate_ingredients(items: list[str]) -> list[str]:
+    """Public-recipe ingredients are untrusted text: keep short plain ingredient names only.
+
+    Anything that looks like a link, an instruction or a safety claim is dropped. Kept items are still
+    only candidates: they can raise a warning, never confirm or rule out an allergen."""
+    out: list[str] = []
+    for raw in items[:80]:
+        t = " ".join(str(raw).lower().split())
+        if _INGREDIENT_TEXT.match(t) and not _NOT_AN_INGREDIENT.search(t) and t not in out:
+            out.append(t)
+    return out[:60]

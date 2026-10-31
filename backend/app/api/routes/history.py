@@ -9,6 +9,7 @@ from sqlalchemy import func, select
 from app.api.deps import DB, CurrentCustomer
 from app.engine.service import knowledge_version
 from app.models import Assessment, ProductSnapshot, RecipeVersion
+from app.restaurant.recipes import current_version
 
 router = APIRouter(prefix="/me/assessments", tags=["customer history"])
 
@@ -42,7 +43,7 @@ def _outdated(db, a: Assessment, kv: int) -> list[str]:
         reasons.append(f"The allergen knowledge base has been updated (v{a.knowledge_version} -> v{kv}).")
     if a.recipe_version_id is not None:
         v = db.get(RecipeVersion, a.recipe_version_id)
-        if v is None or not v.is_current:
+        if v is None or current_version(v.menu_item) is not v:
             reasons.append("The restaurant has changed this recipe since.")
     elif a.menu_item_id is not None:
         reasons.append("The recipe version used is no longer available.")

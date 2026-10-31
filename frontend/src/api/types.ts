@@ -345,6 +345,9 @@ export interface RecipeVersion {
   cross_contacts: CrossContactRecord[];
   cross_contact_reviewed?: boolean;
   changes?: VersionChanges | null;
+  effective_from?: string | null;
+  applies_now?: boolean;
+  scheduled?: boolean;
   warnings: { ingredient: string; allergen_code: string; allergen_name: string; message: string }[];
 }
 
@@ -373,6 +376,7 @@ export interface RecipeInput {
   cross_contact_reviewed: boolean;
   change_note: string;
   mark_verified: boolean;
+  effective_from?: string | null;
 }
 
 export interface AuditEntry {
@@ -469,4 +473,13 @@ export interface Metrics {
   caches: Record<string, { hits: number; misses: number; hit_rate?: number | null; items?: number }>;
   background_jobs: Record<string, number | string>;
   image_jobs: Record<string, number>;
+}
+
+export interface ManufacturerSite {
+  id: number;
+  brand: string;
+  domain: string;
+  product_url_template: string;
+  note: string;
+  created_at: string;
 }

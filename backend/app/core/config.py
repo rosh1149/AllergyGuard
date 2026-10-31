@@ -58,6 +58,14 @@ class Settings(BaseSettings):
     login_lockout_minutes: int = 15
     product_record_max_age_days: int = 1095
 
+    # External product pages (Stage 3). Manufacturer pages are fetched only from approved domains.
+    # Web search is off unless a provider and key are set (provider: "brave").
+    manufacturer_pages_enabled: bool = True
+    web_search_provider: str = ""
+    web_search_api_key: str = ""
+    web_page_max_bytes: int = 1_000_000
+    web_timeout_seconds: float = 8.0
+
     # Packaged-food pipeline
     off_base_url: str = "https://world.openfoodfacts.org"
     off_user_agent: str = "AllergyGuard/0.1 (allergen information app)"

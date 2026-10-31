@@ -326,6 +326,25 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 cd backend && python -m app.evaluation
 ```
 
+## Stage 3: input pathways
+
+- **Recipe versions.** Versions have effective-from dates. A check uses the version in effect at that
+  moment and mentions scheduled changes. Backdating and skipping a scheduled version are refused.
+- **Branch evidence.** A dish is only matched against its own branch's records. A dish listed only at a
+  sister branch is named, but that branch's records are not used.
+- **External sources.**
+  - Manufacturer pages count only on administrator-approved domains (Admin → Manufacturer sites).
+  - Web search (Brave; off without a key) adds other pages as unverified candidates only.
+  - Every page must pass a product-identity check (barcode, or brand + name + variant).
+  - Page text is never read by a model.
+  - Pages used are kept as snapshots.
+- **OCR evaluation.** `python -m app.evaluation.ocr_eval` gives CER/WER, ingredient extraction and
+  allergen agreement per condition. Its first run found that tilted labels lost allergens; deskew and a
+  tolerant heading match fixed it on the generated set. Real photos are still needed.
+- **Public recipes.** Their ingredient names are sanitised, and they can never decide an outcome.
+
+See [docs/INPUT_PATHWAYS.md](docs/INPUT_PATHWAYS.md).
+
 ## Stage 2: reasoning and fusion engine
 
 - **Decision table.** One source-policy table drives the engine. `GET /api/knowledge/decision-matrix`

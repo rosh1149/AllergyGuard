@@ -1,7 +1,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { api } from "../../api/client";
-import type { AuditEntry, Metrics, SourceAdapterInfo, UnresolvedIngredient } from "../../api/types";
+import type { AuditEntry, ManufacturerSite, Metrics, SourceAdapterInfo, UnresolvedIngredient } from "../../api/types";
 import { RULE_LABELS } from "../../components/ResultView";
 import { ReviewQueue } from "../../components/ReviewQueue";
 import { ErrorAlert, formatDate, OUTCOME_LABELS, Spinner } from "../../components/ui";
@@ -16,6 +16,7 @@ export function AdminLayout() {
         <NavLink to="/admin/review">Review queue</NavLink>
         <NavLink to="/admin/unresolved">Unidentified ingredients</NavLink>
         <NavLink to="/admin/sources">Data sources</NavLink>
+        <NavLink to="/admin/manufacturers">Manufacturer sites</NavLink>
         <NavLink to="/admin/audit">Audit log</NavLink>
       </nav>
       <main><Outlet /></main>
@@ -237,6 +238,64 @@ export function AdminAuditPage() {
               </tr>
             ))}
           </tbody>
+        </table></div>
+      )}
+    </div>
+  );
+}
+
+export function ManufacturerSitesPage() {
+  const [rows, setRows] = useState<ManufacturerSite[] | null>(null);
+  const [form, setForm] = useState({ brand: "", domain: "", product_url_template: "", note: "" });
+  const [error, setError] = useState<unknown>(null);
+  const load = () => {
+    api<ManufacturerSite[]>("/admin/manufacturer-sites").then(setRows).catch(setError);
+  };
+  useEffect(load, []);
+  const add = async () => {
+    setError(null);
+    try {
+      await api("/admin/manufacturer-sites", { method: "POST", json: form });
+      setForm({ brand: "", domain: "", product_url_template: "", note: "" });
+      load();
+    } catch (err) {
+      setError(err);
+    }
+  };
+  const remove = async (id: number) => {
+    if (!confirm("Remove this approved site? Its pages will then count only as unverified web pages.")) return;
+    try {
+      await api(`/admin/manufacturer-sites/${id}`, { method: "DELETE" });
+      load();
+    } catch (err) {
+      setError(err);
+    }
+  };
+  return (
+    <div className="stack">
+      <div>
+        <h1>Manufacturer sites</h1>
+        <p className="muted">Only pages on a domain approved here for the product's brand count as manufacturer evidence. Any other page found on the web is an unverified candidate: it can raise a warning but never confirm or rule out an allergen. Pages must also match the product (barcode, or brand, name and variant).</p>
+      </div>
+      <ErrorAlert error={error} />
+      <section className="card">
+        <h2>Approve a site</h2>
+        <div className="grid-2">
+          <label className="field"><span>Brand (as on the product)</span><input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} /></label>
+          <label className="field"><span>Domain</span><input placeholder="acmebakery.example" value={form.domain} onChange={(e) => setForm({ ...form, domain: e.target.value })} /></label>
+        </div>
+        <label className="field"><span>Product page pattern (optional)</span><input placeholder="https://acmebakery.example/products/{barcode}" value={form.product_url_template} onChange={(e) => setForm({ ...form, product_url_template: e.target.value })} /></label>
+        <label className="field"><span>Why this site is the manufacturer's</span><input value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></label>
+        <button className="primary" disabled={!form.brand || !form.domain} onClick={add}>Approve site</button>
+      </section>
+      {!rows && !error && <Spinner />}
+      {rows && rows.length > 0 && (
+        <div className="table-wrap card"><table>
+          <thead><tr><th>Brand</th><th>Domain</th><th>Product pages</th><th>Note</th><th></th></tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.id}><td>{r.brand}</td><td>{r.domain}</td><td><small>{r.product_url_template || "–"}</small></td>
+              <td><small className="muted">{r.note}</small></td><td><button className="small danger" onClick={() => remove(r.id)}>Remove</button></td></tr>
+          ))}</tbody>
         </table></div>
       )}
     </div>

@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import logging
+
+import httpx
+from sqlalchemy import select
 from contextlib import nullcontext
 from collections.abc import Callable
 from datetime import datetime
@@ -15,9 +18,10 @@ from app.engine.service import AssessmentLink, analyze_for_user
 from app.core.limits import image_job
 from app.core.timing import StageTimer
 from app.models.common import utcnow
-from app.packaged.snapshots import record_snapshot, saved_copy
+from app.packaged.snapshots import record_page, record_snapshot, saved_copy
+from app.sources.web import ManufacturerPageAdapter, ProductIdentity, WebSearchAdapter, search_provider
 from app.engine.types import MIN_IDENTITY_CONFIDENCE, MIN_SOURCE_CONFIDENCE, AnalysisContext, AnalysisResult, EvidenceSource
-from app.models import ReviewKind
+from app.models import ManufacturerSite, ReviewKind
 from app.review.queue import ReviewFlag, queue_flags_later
 from app.models import User
 from app.packaged.barcode import normalize_barcode, read_barcodes
@@ -254,6 +258,7 @@ def run_packaged_pipeline(
     product_name: str = "",
     off: OpenFoodFactsClient | None = None,
     use_vision: bool = True,
+    web: httpx.Client | None = None,
 ) -> PackagedAnalysisOut:
     steps: list[Step] = []
     limitations: list[str] = []
@@ -371,6 +376,35 @@ def run_packaged_pipeline(
             )
         else:
             limitations.append("The product database entry has no ingredient information.")
+
+    # 5. External pages: the manufacturer's site (approved domains) and web search, if configured.
+    identity = ProductIdentity(brand=p.brand if p else (guess.brand if guess else ""),
+                               name=p.name if p else (guess.product_name if guess else product_name.strip()),
+                               barcode=p.barcode if p else (barcodes[0] if barcodes else ""))
+    if web is not None and identity.brand and identity.name:
+        sites = [(m.brand, m.domain, m.product_url_template) for m in db.scalars(select(ManufacturerSite)).all()]
+        with timer("external_pages"):
+            mfr = ManufacturerPageAdapter(web, sites).fetch(identity)
+            found = list(mfr.sources)
+            rejected = list((mfr.payload or {}).get("rejected", [])) if isinstance(mfr.payload, dict) else []
+            if not found:
+                search = WebSearchAdapter(web, search_provider(), sites).fetch(identity)
+                found += search.sources
+                if isinstance(search.payload, dict):
+                    rejected += search.payload.get("rejected", [])
+        for src in found:
+            sources.append(src)
+            record_page(db, identity, src)
+        for url, why in rejected[:3]:
+            limitations.append(f"A page was not used because it may describe a different product ({why}): {url}")
+        failed = [r for r in (mfr,) if r.status.failed]
+        steps.append(Step(
+            name="external_pages", status="failed" if failed and not found else ("done" if found else "skipped"),
+            detail=(f"{len(found)} page(s) used" + (f", {len(rejected)} rejected" if rejected else "")) if (found or rejected)
+            else mfr.detail,
+        ))
+        if failed and not found:
+            limitations.append("The manufacturer's website could not be reached.")
 
     if p and ident.confidence >= MIN_IDENTITY_CONFIDENCE:
         identity_label = p.display_name

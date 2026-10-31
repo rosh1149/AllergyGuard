@@ -170,6 +170,8 @@ export function MenuItemPage() {
 
   if (!item) return error ? <ErrorAlert error={error} /> : <Spinner />;
   const cur = item.current_version;
+  const latest = item.versions.reduce<typeof item.versions[number] | null>((a, v) => (!a || v.version_number > a.version_number ? v : a), null);
+  const upcoming = item.versions.find((v) => v.scheduled);
   const name = (c: string) => byCode[c]?.name ?? c;
 
   return (
@@ -220,9 +222,14 @@ export function MenuItemPage() {
                   Mark verified
                 </button>
               )}
-              {canEdit && <button className="small" onClick={() => { setRecipe(recipeFromVersion(cur)); setEditing(true); }}>Edit recipe</button>}
+              {canEdit && <button className="small" onClick={() => { setRecipe(recipeFromVersion(latest ?? cur)); setEditing(true); }}>Edit recipe</button>}
             </div>
           </div>
+          {upcoming && (
+            <div className="alert info" style={{ marginTop: "0.8rem" }}>
+              v{upcoming.version_number} is scheduled to take effect {formatDate(upcoming.effective_from ?? null)}. Until then customers' checks use v{cur.version_number}.
+            </div>
+          )}
           {cur.warnings.length > 0 && (
             <div className="alert warn" style={{ marginTop: "0.8rem" }}>
               <strong>Check these allergens</strong>
@@ -239,8 +246,12 @@ export function MenuItemPage() {
           {item.versions.map((v) => (
             <li key={v.id}>
               <div className="spread">
-                <strong>v{v.version_number}{v.is_current && " (current)"}</strong>
-                <span className={`badge ${v.verification_status === "verified" ? "ok" : "neutral"}`}>{v.verification_status}</span>
+                <strong>v{v.version_number}</strong>
+                <span className="row" style={{ gap: "0.3rem" }}>
+                  {v.applies_now && <span className="badge ok">in effect</span>}
+                  {v.scheduled && <span className="badge o-POSSIBLE_CROSS_CONTACT">scheduled from {formatDate(v.effective_from ?? null)}</span>}
+                  <span className={`badge ${v.verification_status === "verified" ? "ok" : "neutral"}`}>{v.verification_status}</span>
+                </span>
               </div>
               <small className="muted">
                 {formatDate(v.created_at)}{v.created_by && ` by ${v.created_by}`}

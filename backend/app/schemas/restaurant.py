@@ -107,6 +107,8 @@ class RecipeIn(BaseModel):
     cross_contact_reviewed: bool = False
     # Editors can confirm the recipe in the same step; otherwise it stays unverified.
     mark_verified: bool = False
+    # Schedule the version to apply from a later moment (None = now). Never in the past.
+    effective_from: datetime | None = None
 
     @field_validator("ingredients")
     @classmethod
@@ -183,6 +185,9 @@ class RecipeVersionOut(BaseModel):
     cross_contacts: list[CrossContactOut]
     cross_contact_reviewed: bool = False
     changes: VersionChanges | None = None
+    effective_from: datetime | None = None  # when it starts to apply (created_at if not scheduled)
+    applies_now: bool = False  # the version customers' checks use right now
+    scheduled: bool = False  # starts to apply in the future
     # Ingredients whose name indicates an allergen that the recipe doesn't declare.
     warnings: list[AllergenWarning] = Field(default_factory=list)
 

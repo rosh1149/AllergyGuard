@@ -208,7 +208,7 @@ def impact(db: Session, s: FeedbackSuggestion) -> FeedbackImpact | None:
     flagged = sum(1 for o in rows if code and o.get(code) in ("PRESENT", "POSSIBLE_CROSS_CONTACT"))
     return FeedbackImpact(
         resulting_version_number=v.version_number,
-        version_is_current=v.is_current,
+        version_is_current=current_version(v.menu_item) is v,
         changes=version_changes(v),
         assessments_since=len(rows),
         assessments_flagging_allergen=flagged if code else None,

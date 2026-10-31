@@ -43,6 +43,7 @@ class SourceType(str, enum.Enum):
     restaurant_unverified = "restaurant_unverified"  # staff-entered, not yet confirmed
     public_recipe = "public_recipe"  # web recipe for an unregistered restaurant (candidate only)
     customer_suggestion = "customer_suggestion"  # unverified customer feedback (candidate only)
+    web_page = "web_page"  # a page found on the web, not an approved manufacturer site (candidate only)
 
 
 @dataclass(frozen=True)
@@ -73,6 +74,9 @@ SOURCE_POLICY: dict[SourceType, SourcePolicy] = {
                                            "How a dish is commonly made, not this restaurant's recipe: candidates only."),
     SourceType.customer_suggestion: SourcePolicy(False, False, True, "only reports on the current recipe version",
                                                  "Unreviewed customer report: candidates only until staff confirm it."),
+    SourceType.web_page: SourcePolicy(False, False, True, "as retrieved",
+                                      "A web page that is not an approved manufacturer site: candidates only, never "
+                                      "verified just because it is online."),
 }
 
 # Derived sets used by the engine (kept as names for readability).
@@ -90,6 +94,7 @@ SOURCE_TYPE_LABELS = {
     SourceType.restaurant_unverified: "Restaurant records (not yet verified)",
     SourceType.public_recipe: "Public recipe (unverified, not this restaurant)",
     SourceType.customer_suggestion: "Customer suggestion (unverified)",
+    SourceType.web_page: "Web page (unverified)",
 }
 
 MIN_IDENTITY_CONFIDENCE = 0.7

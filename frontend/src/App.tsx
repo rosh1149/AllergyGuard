@@ -3,7 +3,7 @@ import type { UserRole } from "./api/types";
 import { useAuth } from "./auth/AuthContext";
 import { Spinner } from "./components/ui";
 import { LoginPage, RestaurantSignupPage, SignupPage } from "./pages/Auth";
-import { AdminAuditPage, AdminLayout, AdminReviewPage, MonitoringPage, SourcesPage, UnresolvedPage } from "./pages/admin/AdminPages";
+import { AdminAuditPage, AdminLayout, AdminReviewPage, ManufacturerSitesPage, MonitoringPage, SourcesPage, UnresolvedPage } from "./pages/admin/AdminPages";
 import { HistoryDetailPage, HistoryPage } from "./pages/customer/History";
 import { HomePage } from "./pages/customer/Home";
 import { PackagedCheckPage } from "./pages/customer/PackagedCheck";
@@ -99,6 +99,7 @@ export function App() {
           <Route path="review" element={<AdminReviewPage />} />
           <Route path="unresolved" element={<UnresolvedPage />} />
           <Route path="sources" element={<SourcesPage />} />
+          <Route path="manufacturers" element={<ManufacturerSitesPage />} />
           <Route path="audit" element={<AdminAuditPage />} />
         </Route>
       </Route>

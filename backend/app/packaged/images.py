@@ -81,8 +81,35 @@ def load_image(data: bytes, max_bytes: int) -> LoadedImage:
     return LoadedImage(img, fmt, img.width, img.height, round(sharpness, 1), round(brightness, 1), issues)
 
 
+def estimate_skew(gray: Image.Image, max_angle: float = 8.0, step: float = 0.5) -> float:
+    """Text-line angle in degrees, by maximising the variance of row sums of dark pixels (projection
+    profile) over small rotations of a downscaled copy. 0 when no clear text lines are found."""
+    import numpy as np
+
+    small = gray.copy()
+    small.thumbnail((600, 600))
+    ink = (np.asarray(ImageOps.autocontrast(small)) < 128).astype(np.uint8)
+    if ink.mean() < 0.005:
+        return 0.0
+    base = Image.fromarray(ink * 255)
+    best_angle, best_score = 0.0, -1.0
+    angle = -max_angle
+    while angle <= max_angle + 1e-9:
+        rows = np.asarray(base.rotate(angle, resample=Image.Resampling.BILINEAR, expand=False, fillcolor=0)).sum(axis=1)
+        score = float(rows.astype(np.float64).var())
+        if score > best_score:
+            best_angle, best_score = angle, score
+        angle += step
+    return round(best_angle, 2)
+
+
 def prepare_for_ocr(img: Image.Image) -> Image.Image:
     gray = ImageOps.grayscale(img)
+    # Straighten slightly tilted photos: Tesseract misreads letters on skewed lines (Stage 3 OCR
+    # evaluation: 4 degrees of tilt turned "INGREDIENTS" into "{NGREDIENTS" and "egg" into "299").
+    angle = estimate_skew(gray)
+    if abs(angle) >= 0.5:
+        gray = gray.rotate(angle, resample=Image.Resampling.BICUBIC, expand=True, fillcolor=255)
     # Tesseract works best with text around 30px tall; upscale small images.
     if max(gray.size) < 1600:
         factor = 1600 / max(gray.size)

@@ -56,3 +56,20 @@ class Assessment(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class ManufacturerSite(Base):
+    """A manufacturer's own website, approved by an administrator. Only pages on an approved domain for
+    the product's brand count as manufacturer evidence; any other page is an unverified web page."""
+
+    __tablename__ = "manufacturer_sites"
+    __table_args__ = (UniqueConstraint("brand", "domain"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    brand: Mapped[str] = mapped_column(String(200), index=True)  # lower-case brand name as on the product
+    domain: Mapped[str] = mapped_column(String(200))  # e.g. "acmebakery.example"
+    # Optional product page pattern, with {barcode} filled in: "https://acmebakery.example/p/{barcode}"
+    product_url_template: Mapped[str] = mapped_column(Text, default="")
+    note: Mapped[str] = mapped_column(Text, default="")
+    added_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

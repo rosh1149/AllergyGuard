@@ -1,3 +1,4 @@
+import httpx
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
@@ -15,6 +16,11 @@ MAX_IMAGES = 3
 
 def get_off_client() -> OpenFoodFactsClient | None:
     return OpenFoodFactsClient(cache=OFF_CACHE)
+
+
+def get_web_client() -> httpx.Client | None:
+    """HTTP client for manufacturer pages and web search (None disables both)."""
+    return httpx.Client(headers={"User-Agent": get_settings().off_user_agent})
 
 
 def load_uploads(images: list[UploadFile]) -> list:
@@ -36,6 +42,7 @@ def analyze_packaged(
     user: CurrentCustomer,
     db: DB,
     off: Annotated[OpenFoodFactsClient | None, Depends(get_off_client)],
+    web: Annotated[httpx.Client | None, Depends(get_web_client)],
     images: Annotated[list[UploadFile] | None, File(description="1-3 photos: front of pack and/or ingredient label")] = None,
     barcode: Annotated[str, Form(max_length=20)] = "",
     product_name: Annotated[str, Form(max_length=200)] = "",
@@ -47,4 +54,4 @@ def analyze_packaged(
             status.HTTP_422_UNPROCESSABLE_CONTENT, "Upload at least one photo, or enter a barcode or product name."
         )
     loaded = load_uploads(images)
-    return run_packaged_pipeline(db, user, loaded, barcode=barcode, product_name=product_name, off=off)
+    return run_packaged_pipeline(db, user, loaded, barcode=barcode, product_name=product_name, off=off, web=web)

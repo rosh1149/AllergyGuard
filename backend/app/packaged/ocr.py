@@ -52,7 +52,8 @@ def run_ocr(img: Image.Image) -> OcrResult:
     return OcrResult(text, round(confidence, 3))
 
 
-_START = re.compile(r"\b(ingredients?|ingred[il1]ents?|ingr\.)\s*[:.;-]?", re.I)
+# Tolerates common OCR misreads of the first letter ("{NGREDIENTS", "lNGREDIENTS", "|ngredients").
+_START = re.compile(r"(?:\b|(?<=[\s{(\[|]))[{(\[|il1]?(ngredients?|ngred[il1]ents?)\b\s*[:.;-]?|\bingr\.\s*", re.I)
 # Things that follow the ingredient statement on a label.
 _END = re.compile(
     r"\b(nutrition(al)?\s+(information|facts|values?)|typical\s+values|per\s+100\s*g|energy\s*[:\d]|"

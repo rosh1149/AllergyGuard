@@ -8,7 +8,10 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+import re
+from urllib.parse import urlparse
+
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import func, select
 
@@ -18,9 +21,10 @@ from app.core.limits import image_job_stats
 from app.engine.normalize import normalization_cache_stats
 from app.engine.service import knowledge_version
 from app.engine.types import MIN_IDENTITY_CONFIDENCE
-from app.models import Assessment, AuditRecord, ReviewItem, ReviewStatus, UnresolvedIngredient, UnresolvedStatus
+from app.models import Assessment, AuditRecord, ManufacturerSite, ReviewItem, ReviewStatus, UnresolvedIngredient, UnresolvedStatus
 from app.models.common import utcnow
 from app.packaged.off import OFF_CACHE
+from app.services.admin_audit import admin_audit
 from app.sources import adapter_health
 
 router = APIRouter(prefix="/admin", tags=["monitoring (admin)"])
@@ -118,3 +122,52 @@ def admin_audit_log(_: CurrentAdmin, db: DB, limit: Annotated[int, Query(ge=1, l
     restaurant's own audit log."""
     return list(db.scalars(select(AuditRecord).where(AuditRecord.restaurant_id.is_(None))
                            .order_by(AuditRecord.created_at.desc(), AuditRecord.id.desc()).limit(limit)).all())
+
+
+# ---- approved manufacturer sites (Stage 3) ----
+
+
+class ManufacturerSiteIn(BaseModel):
+    brand: str
+    domain: str
+    product_url_template: str = ""
+    note: str = ""
+
+
+def _site_out(m: ManufacturerSite) -> dict:
+    return {"id": m.id, "brand": m.brand, "domain": m.domain, "product_url_template": m.product_url_template,
+            "note": m.note, "created_at": m.created_at}
+
+
+@router.get("/manufacturer-sites")
+def list_sites(_: CurrentAdmin, db: DB) -> list[dict]:
+    return [_site_out(m) for m in db.scalars(select(ManufacturerSite).order_by(ManufacturerSite.brand)).all()]
+
+
+@router.post("/manufacturer-sites", status_code=201)
+def add_site(data: ManufacturerSiteIn, admin: CurrentAdmin, db: DB) -> dict:
+    brand = " ".join(data.brand.lower().split())
+    domain = data.domain.strip().lower().removeprefix("https://").removeprefix("http://").removeprefix("www.").split("/")[0]
+    if not brand or not re.fullmatch(r"[a-z0-9.-]+\.[a-z]{2,}", domain):
+        raise HTTPException(422, "Give the brand and a domain such as 'acmebakery.example'.")
+    tpl = data.product_url_template.strip()
+    if tpl and urlparse(tpl).netloc.lower().removeprefix("www.") not in (domain,) and not urlparse(tpl).netloc.lower().endswith("." + domain):
+        raise HTTPException(422, "The product page pattern must be on the approved domain.")
+    if db.scalar(select(ManufacturerSite.id).where(ManufacturerSite.brand == brand, ManufacturerSite.domain == domain)):
+        raise HTTPException(409, "That site is already approved for this brand.")
+    m = ManufacturerSite(brand=brand, domain=domain, product_url_template=tpl, note=data.note, added_by_id=admin.id)
+    db.add(m)
+    db.commit()
+    admin_audit(db, admin, "manufacturer_site.approved", "manufacturer_site", m.id, {"brand": brand, "domain": domain})
+    return _site_out(m)
+
+
+@router.delete("/manufacturer-sites/{site_id}", status_code=204)
+def remove_site(site_id: int, admin: CurrentAdmin, db: DB) -> None:
+    m = db.get(ManufacturerSite, site_id)
+    if m is None:
+        raise HTTPException(404, "Site not found.")
+    details = {"brand": m.brand, "domain": m.domain}
+    db.delete(m)
+    db.commit()
+    admin_audit(db, admin, "manufacturer_site.removed", "manufacturer_site", site_id, details)
