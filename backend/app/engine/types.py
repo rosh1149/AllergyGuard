@@ -145,18 +145,28 @@ class EvidenceRef(BaseModel):
     ingredient: str = ""
     matched_term: str = ""
     detail: str = ""
+    matched_as: str = ""  # the normalized text, when it differs from what was written ("caseln" -> "casein")
+    match_method: str = ""  # exact | spelling | ocr_correction | fuzzy | qualified
     concept: str = ""  # ingredient concept slug, when the finding came through the knowledge layer
     relationship_path: str = ""  # e.g. "sodium caseinate, derived from casein, is a milk protein, ..."
     certainty: str = ""  # definite | possible (concept relationships)
 
 
 class IngredientResolution(BaseModel):
-    """How one ingredient item was understood by the knowledge base."""
+    """How one ingredient item was understood: from the written text to a canonical concept."""
 
     source_id: str
-    text: str
-    # allergen_linked | possible_allergen | ambiguous_source | no_known_allergen | unresolved
+    original_text: str = ""  # as written
+    text: str  # normalized
+    # ingredient | compound | component | class_label | qualified | source_qualifier
+    role: str = "ingredient"
+    parent: str | None = None
+    # allergen_linked | possible_allergen | ambiguous_source | no_known_allergen | unresolved | class_name
     status: str
+    match_method: str = "exact"  # exact | spelling | ocr_correction | fuzzy | qualified | none
+    match_confidence: float = 1.0
+    corrections: list[str] = Field(default_factory=list)
+    suggestion: str | None = None  # an unaccepted guess for an unresolved item
     concept: str | None = None
     concept_name: str = ""
     foodon_id: str | None = None

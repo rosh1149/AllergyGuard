@@ -13,6 +13,7 @@ evidence and uncertainty; it never certifies food as safe.
 | 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Done |
 | 5 | React + TypeScript frontend | Done |
 | A | Ingredient knowledge layer: concepts, FoodOn ids, relationship reasoning, allergen hierarchy, regional lists, versioned maintenance, unresolved queue | Done |
+| B | Multi-stage ingredient normalization: cleaning, OCR correction, spelling, synonyms, RapidFuzz fuzzy matching, compound ingredients, canonical concepts, uncertainty kept | Done |
 
 ## Run
 
@@ -153,6 +154,32 @@ The allergen terms of Part 2 are now complemented by a knowledge layer of **ingr
   knowledge version with a change-log entry, and every result reports the `knowledge_version` it used.
 - Endpoints: `POST /api/knowledge/resolve` (any signed-in user), `GET /api/knowledge/regulatory`, and for
   administrators `summary`, `concepts`, `concepts/{slug}`, `proposals`, `changes`, `unresolved`.
+
+## Ingredient normalization (Step B)
+
+`backend/app/engine/normalize.py` turns raw ingredient text into ingredients traced from what was
+written to a canonical concept:
+
+| Stage | What it does |
+|---|---|
+| 1. Cleaning | Symbols, percentages, `E 322` / `e-322` -> `e322`, whitespace, "Ingredients:" prefix |
+| 2. OCR correction | Label photos only. Tesseract confusions (l/i, rn/m, cl/d, 5/s, 0/o, vv/w...), up to two per word, accepted only when exactly one correction is a known word: `Caseln` -> `casein` |
+| 3. Spelling | Reviewed regional variants and misspellings (`app/seed/spelling_data.py`): flavor -> flavour, mayonaise -> mayonnaise |
+| 4. Synonyms | Exact alias / allergen-term lookup (Step A knowledge base) |
+| 5. Fuzzy matching | RapidFuzz similarity for whole names (>= 90) and single words (>= 88), minimum length 5, with a required lead over the runner-up; all configurable (`FUZZY_*` settings) |
+| 6. Compound ingredients | Nested brackets, class names (`emulsifier: ...`), headers (`contains 2% or less of:`), and source qualifiers: `lecithins (soya)` means soy only, `vegetable oil (sunflower, rapeseed)` is resolved |
+| 7. Canonical concept | Concept slug and FoodOn id |
+| 8. Uncertainty kept | Unknown text stays unresolved, is listed as a limitation and queued for review |
+
+**Safety rule for guesses (stages 2 and 5):** a guess may add an allergen finding (the cautious
+direction, shown as *'caseln' (read as 'casein', OCR correction)*), but never turns unknown text into
+"no known allergen": a harmless guess is kept only as a `suggestion`. Text with unknown words left over
+counts as unresolved even when part of it is known ("penaut oil" is not hidden behind "oil").
+
+Every ingredient in a result keeps `original_text`, normalized `text`, `role` and `parent`,
+`concept` / `foodon_id`, `match_method` (exact, spelling, ocr_correction, fuzzy, qualified, none),
+`match_confidence`, `corrections` and `suggestion`. `POST /api/knowledge/resolve` (with `"ocr": true`
+for photo text) shows the same breakdown for any ingredient list.
 
 ## Packaged-food pipeline (Part 3)
 

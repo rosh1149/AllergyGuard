@@ -25,12 +25,11 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import combinations
 
-from app.engine.knowledge import ItemResolution, KnowledgeBase, custom_match
+from app.engine.knowledge import KnowledgeBase, custom_match
+from app.engine.normalize import NormalizedIngredient, normalize_ingredients
 from app.engine.text import (
     free_from_claims,
-    is_nonspecific,
     normalize,
-    split_items,
     split_precautions,
     word_set,
 )
@@ -67,20 +66,22 @@ class _Prepared:
     absence_ok: bool
     absence_reason: str = ""
     present_codes: set[str] = field(default_factory=set)
-    resolutions: list[ItemResolution] = field(default_factory=list)
+    normalized: list[NormalizedIngredient] = field(default_factory=list)
 
 
-def _prepare(src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
-    items: list[str] = []
+def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
     precautions: list[str] = []
+    ocr = src.type == SourceType.label_ocr  # OCR correction only applies to text read from a photo
+    normalized: list[NormalizedIngredient] = []
     for raw in src.ingredients:
-        t = normalize(raw)
-        if t and t not in items:
-            items.append(t)
+        normalized.extend(normalize_ingredients(kb, raw, ocr=ocr))
     if src.ingredients_text:
         body, stmts = split_precautions(normalize(src.ingredients_text))
         precautions.extend(stmts)
-        items.extend(i for i in split_items(body) if i not in items)
+        normalized.extend(normalize_ingredients(kb, body, ocr=ocr))
+    seen: set[tuple[str, str]] = set()
+    normalized = [n for n in normalized if (n.text, n.role) not in seen and not seen.add((n.text, n.role))]
+    items = list(dict.fromkeys(n.text for n in normalized if n.counts))
     if src.cross_contact_text:
         cc = normalize(src.cross_contact_text)
         _, stmts = split_precautions(cc)
@@ -104,7 +105,7 @@ def _prepare(src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
         reason = "The text could not be read reliably."
     elif not items:
         reason = "No ingredients were found in this source."
-    return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason)
+    return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason, normalized=normalized)
 
 
 def _ref(
@@ -116,6 +117,7 @@ def _ref(
     concept: str = "",
     path: str = "",
     certainty: str = "",
+    n: NormalizedIngredient | None = None,
 ) -> EvidenceRef:
     return EvidenceRef(
         source_id=p.src.id,
@@ -128,6 +130,8 @@ def _ref(
         concept=concept,
         relationship_path=path,
         certainty=certainty,
+        matched_as=n.text if n is not None and n.text != n.original else "",
+        match_method=n.method if n is not None else "",
     )
 
 
@@ -142,16 +146,18 @@ def _collect(
 
     for p in prepared:
         presence_kind = "presence" if p.trusted else "candidate"
-        for item in p.items:
+        for n in p.normalized:
+            if not n.counts or n.resolution is None:
+                continue
+            item, shown = n.text, n.original
             claims = free_from_claims(item)
             claim_codes: set[str] = set()
             for c in claims:
                 claim_codes |= kb.codes_in(c)
             for code in claim_codes:
-                ev[code].append(_ref(p, "claim", item, detail=f"'{item}' claims to be free of it"))
+                ev[code].append(_ref(p, "claim", shown, detail=f"'{shown}' claims to be free of it", n=n))
 
-            res = kb.resolve_item(item, nonspecific=is_nonspecific(item))
-            p.resolutions.append(res)
+            res = n.resolution
             definite: set[str] = set()
             for cm, path in res.paths:
                 code = path.allergen_code
@@ -161,16 +167,16 @@ def _collect(
                     if code in definite:
                         continue
                     definite.add(code)
-                    ev[code].append(_ref(p, presence_kind, item, cm.alias, concept=cm.slug, path=path.text, certainty="definite"))
+                    ev[code].append(_ref(p, presence_kind, shown, cm.alias, concept=cm.slug, path=path.text, certainty="definite", n=n))
                     if p.trusted:
                         p.present_codes.add(code)
                 else:
-                    ev[code].append(_ref(p, "possible_source", item, cm.alias, concept=cm.slug, path=path.text, certainty="possible"))
+                    ev[code].append(_ref(p, "possible_source", shown, cm.alias, concept=cm.slug, path=path.text, certainty="possible", n=n))
             for m in res.terms:
                 if m.allergen_code in claim_codes or m.allergen_code in definite:
                     continue
                 definite.add(m.allergen_code)
-                ev[m.allergen_code].append(_ref(p, presence_kind, item, m.term))
+                ev[m.allergen_code].append(_ref(p, presence_kind, shown, m.term, n=n))
                 if p.trusted:
                     p.present_codes.add(m.allergen_code)
 
@@ -178,13 +184,13 @@ def _collect(
                 key = f"custom:{term}"
                 via = next((cm for cm in res.concepts if term in custom_concepts and kb.concept_reaches(cm.slug, custom_concepts[term])), None)
                 if any(term in c for c in claims):
-                    ev[key].append(_ref(p, "claim", item, detail=f"'{item}' claims to be free of it"))
+                    ev[key].append(_ref(p, "claim", shown, detail=f"'{shown}' claims to be free of it", n=n))
                 elif custom_match(term, item):
-                    ev[key].append(_ref(p, presence_kind, item, term))
+                    ev[key].append(_ref(p, presence_kind, shown, term, n=n))
                 elif via:
-                    ev[key].append(_ref(p, presence_kind, item, via.alias, concept=via.slug,
-                                        path=f"{kb.concepts[via.slug].name}, made from or containing {term}"))
-            if res.status == "ambiguous_source" and item not in nonspecific:
+                    ev[key].append(_ref(p, presence_kind, shown, via.alias, concept=via.slug,
+                                        path=f"{kb.concepts[via.slug].name}, made from or containing {term}", n=n))
+            if res.status == "ambiguous_source" and n.role != "compound" and item not in nonspecific:
                 nonspecific.append(item)
 
         for code in p.src.declared_allergens or []:
@@ -241,8 +247,9 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared]) -> tuple[list[Confl
     for p in prepared:
         if p.src.declared_allergens is None or not p.trusted:
             continue
-        from_items = {m.allergen_code for r in p.resolutions for m in r.terms}
-        from_items |= {path.allergen_code for r in p.resolutions for _, path in r.paths if path.certainty == "definite"}
+        res_list = [n.resolution for n in p.normalized if n.counts and n.resolution is not None]
+        from_items = {m.allergen_code for r in res_list for m in r.terms}
+        from_items |= {path.allergen_code for r in res_list for _, path in r.paths if path.certainty == "definite"}
         from_items &= set(kb.allergens)
         for code in sorted(from_items - set(p.src.declared_allergens)):
             conflicts.append(
@@ -301,6 +308,13 @@ def _decide(
     def where(r: EvidenceRef) -> str:
         return f"{SOURCE_TYPE_LABELS[r.source_type]}: {r.source_name}"
 
+    def ing(r: EvidenceRef) -> str:
+        """The ingredient as written, plus how it was read when normalization changed it."""
+        if r.matched_as and r.matched_as != r.ingredient:
+            how = {"ocr_correction": "OCR correction", "fuzzy": "closest known name", "spelling": "spelling"}.get(r.match_method, "")
+            return f"'{r.ingredient}' (read as '{r.matched_as}'{', ' + how if how else ''})"
+        return f"'{r.ingredient}'"
+
     present = by_kind["presence"] + by_kind["declared"]
     if present:
         reasons = []
@@ -308,9 +322,9 @@ def _decide(
             if r.kind == "declared":
                 reasons.append(f"{name} is declared as an allergen ({where(r)}).")
             elif r.relationship_path:
-                reasons.append(f"Ingredient '{r.ingredient}' indicates {name}: {r.relationship_path} ({where(r)}).")
+                reasons.append(f"Ingredient {ing(r)} indicates {name}: {r.relationship_path} ({where(r)}).")
             else:
-                reasons.append(f"Ingredient '{r.ingredient}' indicates {name} ({where(r)}).")
+                reasons.append(f"Ingredient {ing(r)} indicates {name} ({where(r)}).")
         return Outcome.PRESENT, _dedupe(reasons)
 
     cross = by_kind["cross_contact"] + by_kind["candidate_cross_contact"]
@@ -336,7 +350,7 @@ def _decide(
             f"or may not match this item ({where(r)})."
             for r in by_kind["candidate"]
         ] + [
-            f"'{r.ingredient or r.detail}' may contain {name}: {r.relationship_path}. The source is not stated ({where(r)})."
+            f"{ing(r) if r.ingredient else repr(r.detail)} may contain {name}: {r.relationship_path}. The source is not stated ({where(r)})."
             for r in by_kind["possible_source"]
         ]
         return Outcome.UNKNOWN, _dedupe(reasons)
@@ -367,7 +381,7 @@ def assess(
 ) -> AnalysisResult:
     ctx = ctx or AnalysisContext()
     custom_terms = [normalize(t) for t in profile.custom_terms if normalize(t)]
-    prepared = [_prepare(s, ctx) for s in sources]
+    prepared = [_prepare(kb, s, ctx) for s in sources]
     evidence, nonspecific = _collect(kb, prepared, custom_terms)
     conflicts, list_mismatch = _conflicts(kb, prepared)
 
@@ -447,7 +461,8 @@ def assess(
         limitations.append(
             "Some ingredients are general terms whose components are not listed: " + ", ".join(nonspecific) + "."
         )
-    unresolved = _dedupe([r.text for p in prepared for r in p.resolutions if r.status == "unresolved"])
+    unresolved = _dedupe([n.original for p in prepared for n in p.normalized
+                          if n.counts and n.resolution is not None and n.resolution.status == "unresolved"])
     if unresolved:
         limitations.append(
             "Not recognised by the ingredient knowledge base (checked by name only): " + ", ".join(unresolved) + "."
@@ -482,20 +497,28 @@ def assess(
         conflicts=conflicts,
         limitations=_dedupe(limitations),
         nonspecific_ingredients=nonspecific,
-        ingredients=[_resolution_out(kb, p, r) for p in prepared for r in p.resolutions],
+        ingredients=[resolution_out(kb, p.src.id, n) for p in prepared for n in p.normalized],
         knowledge_version=kb.version,
     )
 
 
-def _resolution_out(kb: KnowledgeBase, p: _Prepared, r: ItemResolution) -> IngredientResolution:
-    concept = kb.concepts.get(r.concepts[0].slug) if r.concepts else None
-    definite = [path for _, path in r.paths if path.certainty == "definite"]
-    possible = [path for _, path in r.paths if path.certainty == "possible"]
-    allergens = _dedupe([path.allergen_code for path in definite] + [t.allergen_code for t in r.terms])
+def resolution_out(kb: KnowledgeBase, source_id: str, n: NormalizedIngredient) -> IngredientResolution:
+    r = n.resolution
+    concept = kb.concepts.get(r.concepts[0].slug) if r and r.concepts else None
+    definite = [path for _, path in r.paths if path.certainty == "definite"] if r else []
+    possible = [path for _, path in r.paths if path.certainty == "possible"] if r else []
+    allergens = _dedupe([path.allergen_code for path in definite] + [t.allergen_code for t in r.terms]) if r else []
     return IngredientResolution(
-        source_id=p.src.id,
-        text=r.text,
-        status=r.status,
+        source_id=source_id,
+        original_text=n.original,
+        text=n.text,
+        role=n.role,
+        parent=n.parent,
+        status=r.status if r else "class_name",
+        match_method=n.method,
+        match_confidence=n.confidence,
+        corrections=n.corrections,
+        suggestion=n.suggestion,
         concept=concept.slug if concept else None,
         concept_name=concept.name if concept else "",
         foodon_id=concept.foodon_id if concept else None,

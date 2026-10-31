@@ -225,16 +225,19 @@ class KnowledgeBase:
         definite = {t.allergen_code for t in kept} | {p.allergen_code for _, p in paths if p.certainty == "definite"}
         possible = {p.allergen_code for _, p in paths if p.certainty == "possible"} - definite
         ambiguous = nonspecific or any(self.concepts[cm.slug].ambiguous_source for cm in concepts)
+        covered = bool(concepts) and self._covered(item, concepts)
         if definite:
             status = "allergen_linked"
         elif possible:
             status = "possible_allergen"
+        elif not covered and not nonspecific:
+            # Unknown words remain ("penaut oil": "oil" is known, "penaut" is not). Calling this
+            # "ambiguous" or "no known allergen" would hide a possibly misspelled allergen.
+            status = "unresolved"
         elif ambiguous:
             status = "ambiguous_source"
-        elif concepts and self._covered(item, concepts):
-            status = "no_known_allergen"
         else:
-            status = "unresolved"
+            status = "no_known_allergen"
         return ItemResolution(item, status, concepts, kept, paths)
 
     def _covered(self, item: str, concepts: list[ConceptMatch]) -> bool:

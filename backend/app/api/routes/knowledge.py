@@ -8,7 +8,8 @@ from sqlalchemy import func, or_, select
 
 from app.api.deps import DB, CurrentAdmin, CurrentUser
 from app.engine.service import get_knowledge_base, knowledge_version
-from app.engine.text import is_nonspecific, normalize, split_items
+from app.engine.assess import resolution_out
+from app.engine.normalize import normalize_ingredients
 from app.engine.types import IngredientResolution
 from app.knowledge import workflow
 from app.models import (
@@ -34,28 +35,16 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge base"])
 
 class ResolveIn(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
+    ocr: bool = False
 
 
 @router.post("/resolve", response_model=list[IngredientResolution])
 def resolve(data: ResolveIn, _: CurrentUser, db: DB) -> list[IngredientResolution]:
-    """How the knowledge base understands each ingredient in a list (no allergy profile involved)."""
+    """How each ingredient in a list is understood, stage by stage (no allergy profile involved).
+
+    `ocr=true` also applies OCR-error correction, as for text read from a label photo."""
     kb = get_knowledge_base(db)
-    out = []
-    for item in split_items(normalize(data.text)):
-        r = kb.resolve_item(item, nonspecific=is_nonspecific(item))
-        concept = kb.concepts.get(r.concepts[0].slug) if r.concepts else None
-        definite = [p for _, p in r.paths if p.certainty == "definite"]
-        possible = [p for _, p in r.paths if p.certainty == "possible"]
-        allergens = list(dict.fromkeys([p.allergen_code for p in definite] + [t.allergen_code for t in r.terms]))
-        out.append(IngredientResolution(
-            source_id="input", text=item, status=r.status,
-            concept=concept.slug if concept else None, concept_name=concept.name if concept else "",
-            foodon_id=concept.foodon_id if concept else None,
-            allergens=[a for a in allergens if a in kb.allergens],
-            possible_allergens=list(dict.fromkeys(p.allergen_code for p in possible if p.allergen_code not in allergens)),
-            relationship_path=(definite or possible)[0].text if (definite or possible) else "",
-        ))
-    return out
+    return [resolution_out(kb, "input", n) for n in normalize_ingredients(kb, data.text, ocr=data.ocr)]
 
 
 @router.get("/regulatory")

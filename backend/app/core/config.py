@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     # single-administrator deployment.
     knowledge_require_second_reviewer: bool = True
 
+    # Ingredient normalization: RapidFuzz similarity (0-100) needed to accept a fuzzy match for a whole
+    # ingredient name / a single word, the minimum length fuzzy matching applies to, and the lead the
+    # best candidate needs over the second best (otherwise the match is ambiguous and not used).
+    fuzzy_phrase_threshold: float = 90
+    fuzzy_word_threshold: float = 88
+    fuzzy_min_length: int = 5
+    fuzzy_margin: float = 3
+
     # Packaged-food pipeline
     off_base_url: str = "https://world.openfoodfacts.org"
     off_user_agent: str = "AllergyGuard/0.1 (allergen information app)"
