@@ -22,6 +22,7 @@ from app.models import (
     AllergenTermKind,
     Certainty,
     ConceptAlias,
+    ConceptType,
     ConceptRelation,
     IngredientConcept,
     KnowledgeChange,
@@ -35,6 +36,7 @@ from app.models import (
     RelationType,
     User,
 )
+from app.knowledge.validation import ALLERGEN_RELATIONS, validate_kb
 from app.models.common import utcnow
 from app.seed.kb_regression import KB_REGRESSION_CASES
 from app.seed.knowledge_seed import current_version
@@ -79,6 +81,15 @@ def validate(db: Session, kind: ProposalKind, payload: dict) -> None:
         _text(payload, "name")
         if payload.get("foodon_id") and not FOODON_ID.match(payload["foodon_id"]):
             raise _422("FoodOn id must look like FOODON:03420180.")
+        if payload.get("concept_type", "ingredient") not in ConceptType.__members__:
+            raise _422(f"concept_type must be one of: {', '.join(ConceptType.__members__)}.")
+    elif kind == ProposalKind.foodon_mapping:
+        _concept(db, str(payload.get("concept", "")))
+        fid = payload.get("foodon_id")
+        if fid is not None and not FOODON_ID.match(str(fid)):
+            raise _422("FoodOn id must look like FOODON:03420180, or null to remove the mapping.")
+        if not str(payload.get("evidence", "")).strip():
+            raise _422("Say why: the FoodOn label and release that justify this mapping (or why it is wrong).")
     elif kind == ProposalKind.alias:
         _concept(db, str(payload.get("concept", "")))
         alias = _text(payload, "alias")
@@ -92,12 +103,20 @@ def validate(db: Session, kind: ProposalKind, payload: dict) -> None:
         if payload.get("certainty", "definite") not in Certainty.__members__:
             raise _422("Certainty must be 'definite' or 'possible'.")
         subj = _concept(db, str(payload.get("subject", "")))
-        if rel == "associated_with_allergen":
-            _allergen(db, str(payload.get("allergen", "")))
+        if rel in ALLERGEN_RELATIONS:
+            obj_key = "allergen:" + _allergen(db, str(payload.get("allergen", ""))).code
         else:
             obj = _concept(db, str(payload.get("object", "")))
             if obj.id == subj.id:
                 raise _422("A concept cannot be related to itself.")
+            obj_key = obj.slug
+        # Structural rules (types, direction, cycles) checked against the knowledge base plus this relation.
+        kb = load_knowledge_base(db)
+        before = set(validate_kb(kb))
+        kb.relations.append((subj.slug, rel, obj_key, payload.get("certainty", "definite")))
+        new = [e for e in validate_kb(kb) if e not in before]
+        if new:
+            raise _422("The relation breaks knowledge-graph rules: " + "; ".join(new))
     elif kind == ProposalKind.allergen_term:
         _allergen(db, str(payload.get("allergen", "")))
         _text(payload, "term", 120)
@@ -120,6 +139,7 @@ def _apply(db: Session, p: KnowledgeProposal, version: int) -> tuple[str, int | 
         c = IngredientConcept(
             slug=d["slug"], name=_text(d, "name"), description=str(d.get("description", "")),
             ambiguous_source=bool(d.get("ambiguous_source", False)), foodon_id=d.get("foodon_id") or None,
+            concept_type=d.get("concept_type", "ingredient"),
             foodon_note=f"Provided by reviewer; {src}" if d.get("foodon_id") else "",
             status=KnowledgeStatus.verified, source=src, added_in_version=version,
         )
@@ -129,6 +149,14 @@ def _apply(db: Session, p: KnowledgeProposal, version: int) -> tuple[str, int | 
             if a:
                 db.add(ConceptAlias(concept_id=c.id, alias=a, status=KnowledgeStatus.verified, source=src, added_in_version=version))
         return "concept", c.id
+    if p.kind == ProposalKind.foodon_mapping:
+        c = _concept(db, d["concept"])
+        p.payload = {**d, "previous_foodon_id": c.foodon_id}  # kept in the change log
+        c.foodon_id = d.get("foodon_id") or None
+        c.foodon_label = d.get("foodon_label") or None
+        c.foodon_note = (f"Set by proposal #{p.id} in knowledge version {version}: {d['evidence']}" if c.foodon_id
+                         else f"Mapping removed by proposal #{p.id} in knowledge version {version}: {d['evidence']}")
+        return "ingredient_concept", c.id
     if p.kind == ProposalKind.alias:
         a = ConceptAlias(concept_id=_concept(db, d["concept"]).id, alias=_text(d, "alias"),
                          status=KnowledgeStatus.verified, source=src, added_in_version=version)
@@ -138,8 +166,8 @@ def _apply(db: Session, p: KnowledgeProposal, version: int) -> tuple[str, int | 
     if p.kind == ProposalKind.relation:
         r = ConceptRelation(
             subject_id=_concept(db, d["subject"]).id, relation=RelationType(d["relation"]),
-            object_concept_id=_concept(db, d["object"]).id if d["relation"] != "associated_with_allergen" else None,
-            object_allergen_id=_allergen(db, d["allergen"]).id if d["relation"] == "associated_with_allergen" else None,
+            object_concept_id=_concept(db, d["object"]).id if d["relation"] not in ALLERGEN_RELATIONS else None,
+            object_allergen_id=_allergen(db, d["allergen"]).id if d["relation"] in ALLERGEN_RELATIONS else None,
             certainty=Certainty(d.get("certainty", "definite")), status=KnowledgeStatus.verified, source=src,
             added_in_version=version,
         )
@@ -166,7 +194,7 @@ def _apply(db: Session, p: KnowledgeProposal, version: int) -> tuple[str, int | 
 def regression_failures(db: Session) -> list[str]:
     """Run the regression cases against the knowledge base as it stands in this session."""
     kb = load_knowledge_base(db)
-    failures = []
+    failures = [f"Knowledge-graph rule: {e}" for e in validate_kb(kb)]
     for text, expected in KB_REGRESSION_CASES:
         res = kb.resolve_item(text)
         got = {t.allergen_code for t in res.terms} | {p.allergen_code for _, p in res.paths if p.certainty == "definite"}

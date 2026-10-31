@@ -27,7 +27,22 @@ class RelationType(str, enum.Enum):
     is_source_of = "is_source_of"
     is_a = "is_a"
     contains_component = "contains_component"
+    contains_protein = "contains_protein"  # food source -> protein it contains (milk -> casein)
+    # Regulatory: a food source or substance falls under a legally declared allergen category.
+    is_regulated_as = "is_regulated_as"
+    # Scientific association with an allergen category that is not a regulatory classification.
     associated_with_allergen = "associated_with_allergen"
+
+
+class ConceptType(str, enum.Enum):
+    food_source = "food_source"  # an animal, plant or group of them: milk, egg, wheat, peanut, fish
+    ingredient = "ingredient"  # a culinary ingredient made from a source: butter, flour, tofu
+    derivative = "derivative"  # a substance extracted or processed from a source: whey, oils, starches
+    protein = "protein"  # a protein: casein, whey protein, gluten
+    allergen_substance = "allergen_substance"  # a substance that is itself regulated: sulphites
+    additive = "additive"  # a food additive: guar gum, citric acid, lecithin
+    prepared_food = "prepared_food"  # a made food with several components: mayonnaise, marzipan
+    general_term = "general_term"  # a name that does not say what is in it: spices, flavouring
 
 
 class Certainty(str, enum.Enum):
@@ -56,6 +71,7 @@ class IngredientConcept(TimestampMixin, Base):
     description: Mapped[str] = mapped_column(Text, default="")
     # Source not stated by the name alone (e.g. "vegetable oil", "lecithin").
     ambiguous_source: Mapped[bool] = mapped_column(default=False)
+    concept_type: Mapped[str] = mapped_column(String(30), default=ConceptType.ingredient.value)
     foodon_id: Mapped[str | None] = mapped_column(String(40))
     foodon_label: Mapped[str | None] = mapped_column(String(200))
     foodon_note: Mapped[str] = mapped_column(Text, default="")
@@ -150,6 +166,7 @@ class ProposalStatus(str, enum.Enum):
 
 
 class ProposalKind(str, enum.Enum):
+    foodon_mapping = "foodon_mapping"  # set, change or remove a concept's FoodOn identifier
     concept = "concept"
     alias = "alias"
     relation = "relation"
@@ -217,4 +234,7 @@ class UnresolvedIngredient(Base):
         Enum(UnresolvedStatus, name="unresolved_status"), default=UnresolvedStatus.open, index=True
     )
     resolved_concept_id: Mapped[int | None] = mapped_column(ForeignKey("ingredient_concepts.id", ondelete="SET NULL"))
+    # Candidate matches that were NOT accepted, and why the text could not be resolved.
+    candidates: Mapped[list] = mapped_column(JSON, default=list)
+    reasons: Mapped[list] = mapped_column(JSON, default=list)
     note: Mapped[str] = mapped_column(Text, default="")

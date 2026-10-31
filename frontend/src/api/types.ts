@@ -420,6 +420,8 @@ export interface UnresolvedIngredient {
   text: string;
   occurrences: number;
   source_types: string[];
+  candidates?: string[];
+  reasons?: string[];
   first_seen: string;
   last_seen: string;
   status: string;

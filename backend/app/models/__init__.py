@@ -7,6 +7,7 @@ from app.models.knowledge import (
     Certainty,
     ConceptAlias,
     ConceptRelation,
+    ConceptType,
     IngredientConcept,
     KnowledgeChange,
     KnowledgeProposal,
@@ -40,6 +41,7 @@ from app.models.review import RESTAURANT_KINDS, ReviewItem, ReviewKind, ReviewSt
 from app.models.user import CustomerAllergy, CustomerCustomAllergy, User, UserRole
 
 __all__ = [
+    "ConceptType",
     "RESTAURANT_KINDS",
     "ReviewItem",
     "ReviewKind",

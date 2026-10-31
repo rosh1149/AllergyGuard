@@ -30,7 +30,7 @@ from app.models import (
     User,
 )
 from app.models.common import utcnow
-from app.seed.concept_data import MODIFIERS
+from app.seed.concept_data import HOMONYMS, MODIFIERS
 
 _kb: KnowledgeBase | None = None
 _lock = threading.Lock()
@@ -76,13 +76,14 @@ def load_knowledge_base(db: Session) -> KnowledgeBase:
         [AllergenInfo(a.code, a.name) for a in allergens],
         synonyms,
         exclusions,
-        concepts=[ConceptInfo(c.slug, c.name, c.ambiguous_source, c.foodon_id) for c in concepts],
+        concepts=[ConceptInfo(c.slug, c.name, c.ambiguous_source, c.foodon_id, c.concept_type) for c in concepts],
         aliases=[(a.alias, by_id[a.concept_id].slug) for a in aliases if a.concept_id in by_id],
         relations=relations,
         hierarchy=hierarchy,
         regulated={k: sorted(set(v)) for k, v in regulated.items()},
         modifiers=MODIFIERS,
         version=knowledge_version(db),
+        homonyms=HOMONYMS,
     )
 
 
@@ -115,21 +116,27 @@ def record_unresolved(db: Session, result: AnalysisResult) -> None:
     Only the text and the kind of source are kept: no user, restaurant or product identifiers."""
     source_types = {s.id: s.type.value for s in result.sources}
     seen: dict[str, set[str]] = {}
+    detail: dict[str, tuple[list[str], list[str]]] = {}
     for ing in result.ingredients:
         if ing.status == "unresolved" and 2 <= len(ing.text) <= 200:
             seen.setdefault(ing.text, set()).add(source_types.get(ing.source_id, ""))
+            detail[ing.text] = (ing.candidates, ing.unresolved_reasons)
     if not seen:
         return
     existing = {u.text: u for u in db.scalars(select(UnresolvedIngredient).where(UnresolvedIngredient.text.in_(seen))).all()}
     now = utcnow()
     for text, types in seen.items():
         u = existing.get(text)
+        candidates, reasons = detail.get(text, ([], []))
         if u is None:
-            db.add(UnresolvedIngredient(text=text, occurrences=1, source_types=sorted(types), first_seen=now, last_seen=now))
+            db.add(UnresolvedIngredient(text=text, occurrences=1, source_types=sorted(types), first_seen=now, last_seen=now,
+                                        candidates=candidates, reasons=reasons))
         else:
             u.occurrences += 1
             u.last_seen = now
             u.source_types = sorted(set(u.source_types) | types)
+            u.candidates = list(dict.fromkeys([*(u.candidates or []), *candidates]))
+            u.reasons = reasons or u.reasons
     db.commit()
 
 

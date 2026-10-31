@@ -18,6 +18,9 @@ ENUM_VALUES = [
     ("suggestion_type", "incorrect_allergen"),
     ("suggestion_type", "outdated_recipe"),
     ("suggestion_status", "clarification_requested"),
+    ("relation_type", "contains_protein"),
+    ("relation_type", "is_regulated_as"),
+    ("proposal_kind", "foodon_mapping"),
 ]
 
 COLUMNS = [
@@ -29,6 +32,9 @@ COLUMNS = [
     ("feedback_suggestions", "clarified_at", "TIMESTAMP WITH TIME ZONE"),
     ("assessments", "trace", "JSON NOT NULL DEFAULT '[]'"),
     ("assessments", "duration_ms", "INTEGER"),
+    ("ingredient_concepts", "concept_type", "VARCHAR(30) NOT NULL DEFAULT 'ingredient'"),
+    ("unresolved_ingredients", "candidates", "JSON NOT NULL DEFAULT '[]'"),
+    ("unresolved_ingredients", "reasons", "JSON NOT NULL DEFAULT '[]'"),
 ]
 
 

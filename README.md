@@ -326,6 +326,34 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 cd backend && python -m app.evaluation
 ```
 
+## Stage 1: knowledge foundations
+
+- **Held-out test set.** `backend/app/evaluation/heldout/` holds 121 cases with ground-truth labels. It
+  was written and frozen (SHA-256 manifest) before any Stage 1 change, is only checked for integrity in
+  CI, and is run once at the evaluation stage (`python -m app.evaluation.heldout_runner --final`).
+- **Concepts.** Every concept now has a type (food source, ingredient, derivative, protein, allergen
+  substance, additive, prepared food, general term).
+- **Relations.** New relations are `contains_protein` and `is_regulated_as`. Regulatory categories are
+  separate from scientific links.
+- **Proteins and homonyms.** A protein with several sources links to each only as possible: "gluten" is
+  certainly the gluten category but only possibly wheat. Homonyms ("curd") keep every meaning.
+- **Graph rules** (types, direction, cycles, unstated sources) check the seed data, refuse bad
+  relation proposals immediately, and block approvals.
+- **FoodOn mapping changes** go through reviewed `foodon_mapping` proposals that keep the old
+  identifier.
+- **Incomplete component lists** ("etc.", "and others", "…", an unclosed or empty bracket) are detected
+  and stop a source from supporting NOT LISTED.
+- **Made foods.** A made food written without its components (dark chocolate, sausage, nougat, pesto,
+  curry paste, gravy) can no longer be ruled out. With a complete component list, the listed components
+  decide.
+- **Unidentified ingredients** keep their rejected candidate matches and the reasons they could not be
+  resolved, for administrator review.
+- **Development benchmark (v2).** The dark chocolate expectation was changed, with its justification
+  recorded, and Stage 1 cases were added. The release gate passes; the baseline was updated.
+
+See [docs/KNOWLEDGE_MODEL.md](docs/KNOWLEDGE_MODEL.md) for the model, the rules and the formal result
+semantics.
+
 ## Packaged-food pipeline (Part 3)
 
 `POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,

@@ -8,7 +8,15 @@ Relations (subject -> object):
   is_source_of          subject is a source of object      (stored as the inverse of derived_from)
   is_a                  subject is a kind of object        (almond -> tree nut)
   contains_component    subject contains object            (mayonnaise -> egg)
-  associated_with_allergen  subject belongs to an allergen category (object = "allergen:<code>")
+  contains_protein      subject contains the protein object      (milk -> casein); read in reverse as
+                        "casein is a protein of milk", definite only when the protein has one source
+  is_regulated_as       a food source or substance falls under a legally declared allergen category
+                        (object = "allergen:<code>"). Regulatory, not scientific: oats are regulated as a
+                        cereal containing gluten under EU and Indian rules although they contain avenin.
+  associated_with_allergen  a scientific association with an allergen category (none seeded)
+
+Synonyms are not relations: each concept's aliases are its `has_synonym` set (ConceptAlias).
+Every concept has a type (CONCEPT_TYPES); app/knowledge/validation.py checks direction, types and cycles.
 
 Certainty: "definite", or "possible" when the ingredient name alone does not say which source was used
 (lecithin may come from soy, egg or sunflower). Possible links never make an allergen PRESENT.
@@ -54,7 +62,7 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     # look-alikes: no milk
     "cocoa": ("cocoa", ["cocoa", "cocoa powder", "cocoa mass", "cocoa solids", "cocoa liquor"], False),
     "cocoa_butter": ("cocoa butter", ["cocoa butter"], False),
-    "chocolate": ("chocolate", ["chocolate", "dark chocolate"], False),
+    "chocolate": ("chocolate", ["chocolate", "dark chocolate"], True),
     "coconut": ("coconut", ["coconut", "desiccated coconut"], False),
     "coconut_milk": ("coconut milk", ["coconut milk", "coconut cream"], False),
     "almond_milk": ("almond milk", ["almond milk"], False),
@@ -241,13 +249,28 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     "raising_agent": ("raising agent", ["raising agent", "raising agents", "leavening agent"], True),
     "flavour_enhancer": ("flavour enhancer", ["flavour enhancer", "flavour enhancers", "flavor enhancer"], True),
     "thickener": ("thickener", ["thickener", "thickeners", "thickening agent"], True),
+    # Stage 1: a protein shared by several cereals, and made foods whose name does not list what is in them.
+    "gluten": ("gluten", ["gluten"], False),
+    "wheat_gluten": ("wheat gluten", ["wheat gluten", "vital wheat gluten"], False),
+    "nougat": ("nougat", ["nougat"], True),
+    "pesto": ("pesto", ["pesto", "basil pesto"], True),
+    "curry_paste": ("curry paste", ["curry paste", "thai curry paste", "red curry paste", "green curry paste"], True),
+    "gravy": ("gravy", ["gravy", "gravy granules"], True),
+    "sausage": ("sausage", ["sausage", "sausages", "sausage meat"], True),
+    "seafood": ("seafood", ["seafood", "sea food", "seafood mix", "mixed seafood"], True),
+}
+
+# Names with more than one meaning. Each reading is kept: an allergen is definite only when every
+# reading carries it, otherwise possible ("curd" is yogurt in Indian English, bean curd elsewhere).
+HOMONYMS: dict[str, list[str]] = {
+    "curd": ["yogurt", "tofu"],
 }
 
 A = "allergen:"
 # (subject, relation, object, certainty)
 RELATIONS: list[tuple[str, str, str, str]] = [
     # milk
-    ("milk", "associated_with_allergen", A + "milk", "definite"),
+    ("milk", "is_regulated_as", A + "milk", "definite"),
     ("milk_protein", "derived_from", "milk", "definite"),
     ("casein", "is_a", "milk_protein", "definite"),
     ("sodium_caseinate", "derived_from", "casein", "definite"),
@@ -277,7 +300,7 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("oat_milk", "derived_from", "oats", "definite"),
     ("rice_milk", "derived_from", "rice", "definite"),
     # egg
-    ("egg", "associated_with_allergen", A + "eggs", "definite"),
+    ("egg", "is_regulated_as", A + "eggs", "definite"),
     ("egg_white", "derived_from", "egg", "definite"),
     ("egg_yolk", "derived_from", "egg", "definite"),
     ("egg_powder", "derived_from", "egg", "definite"),
@@ -285,8 +308,8 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("mayonnaise", "contains_component", "egg_yolk", "definite"),
     ("meringue", "contains_component", "egg_white", "definite"),
     # cereals
-    ("wheat", "associated_with_allergen", A + "wheat", "definite"),
-    ("wheat", "associated_with_allergen", A + "gluten", "definite"),
+    ("wheat", "is_regulated_as", A + "wheat", "definite"),
+    ("wheat", "is_regulated_as", A + "gluten", "definite"),
     ("wheat_flour", "derived_from", "wheat", "definite"),
     ("flour", "derived_from", "wheat", "possible"),
     ("semolina", "derived_from", "durum_wheat", "definite"),
@@ -297,8 +320,36 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("couscous", "derived_from", "durum_wheat", "definite"),
     ("seitan", "derived_from", "wheat", "definite"),
     ("wheat_starch", "derived_from", "wheat", "definite"),
-    ("barley", "associated_with_allergen", A + "gluten", "definite"),
+    ("barley", "is_regulated_as", A + "gluten", "definite"),
     ("malt", "derived_from", "barley", "definite"),
+    # Proteins (Stage 1). Read in reverse: casein is a protein of milk.
+    ("milk", "contains_protein", "casein", "definite"),
+    ("milk", "contains_protein", "whey_protein", "definite"),
+    ("wheat", "contains_protein", "gluten", "definite"),
+    ("barley", "contains_protein", "gluten", "definite"),
+    ("rye", "contains_protein", "gluten", "definite"),
+    ("gluten", "is_regulated_as", A + "gluten", "definite"),
+    ("wheat_gluten", "is_a", "gluten", "definite"),
+    ("wheat_gluten", "derived_from", "wheat", "definite"),
+    ("seitan", "contains_component", "gluten", "definite"),
+    # Made foods whose components are not listed (Stage 1). A listed component list replaces these.
+    ("chocolate", "contains_component", "milk", "possible"),
+    ("nougat", "contains_component", "egg_white", "possible"),
+    ("nougat", "contains_component", "tree_nut", "possible"),
+    ("nougat", "contains_component", "peanut", "possible"),
+    ("pesto", "contains_component", "cheese", "possible"),
+    ("pesto", "contains_component", "tree_nut", "possible"),
+    ("curry_paste", "contains_component", "shrimp_paste", "possible"),
+    ("curry_paste", "contains_component", "fish_sauce", "possible"),
+    ("gravy", "contains_component", "wheat_flour", "possible"),
+    ("gravy", "contains_component", "celery", "possible"),
+    ("sausage", "contains_component", "wheat", "possible"),
+    ("sausage", "contains_component", "milk_powder", "possible"),
+    ("sausage", "contains_component", "mustard", "possible"),
+    ("sausage", "contains_component", "sulphite", "possible"),
+    ("seafood", "contains_component", "fish", "possible"),
+    ("seafood", "contains_component", "crustacean", "possible"),
+    ("seafood", "contains_component", "mollusc", "possible"),
     # General terms whose components are not listed: they may hide the allergens most often found in
     # them, so those allergens cannot be ruled out ("spices (cumin, coriander)" names the components
     # and replaces these possibilities).
@@ -312,18 +363,18 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("flavouring", "contains_component", "milk", "possible"),
     ("flavouring", "contains_component", "soybean", "possible"),
     ("flavouring", "contains_component", "wheat", "possible"),
-    ("rye", "associated_with_allergen", A + "gluten", "definite"),
-    ("oats", "associated_with_allergen", A + "gluten", "definite"),
-    ("triticale", "associated_with_allergen", A + "gluten", "definite"),
+    ("rye", "is_regulated_as", A + "gluten", "definite"),
+    ("oats", "is_regulated_as", A + "gluten", "definite"),
+    ("triticale", "is_regulated_as", A + "gluten", "definite"),
     ("starch", "derived_from", "wheat", "possible"),
     ("starch", "derived_from", "maize", "possible"),
     # peanut
-    ("peanut", "associated_with_allergen", A + "peanuts", "definite"),
+    ("peanut", "is_regulated_as", A + "peanuts", "definite"),
     ("peanut_oil", "derived_from", "peanut", "definite"),
     ("peanut_butter", "derived_from", "peanut", "definite"),
     ("satay_sauce", "contains_component", "peanut", "definite"),
     # tree nuts
-    ("tree_nut", "associated_with_allergen", A + "tree_nuts", "definite"),
+    ("tree_nut", "is_regulated_as", A + "tree_nuts", "definite"),
     ("almond", "is_a", "tree_nut", "definite"),
     ("almond_flour", "derived_from", "almond", "definite"),
     ("marzipan", "contains_component", "almond", "definite"),
@@ -338,7 +389,7 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("brazil_nut", "is_a", "tree_nut", "definite"),
     ("macadamia", "is_a", "tree_nut", "definite"),
     # soy
-    ("soybean", "associated_with_allergen", A + "soy", "definite"),
+    ("soybean", "is_regulated_as", A + "soy", "definite"),
     ("soy_lecithin", "derived_from", "soybean", "definite"),
     ("soy_sauce", "derived_from", "soybean", "definite"),
     ("soy_sauce", "contains_component", "wheat", "definite"),
@@ -355,13 +406,13 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("hydrolysed_vegetable_protein", "derived_from", "soybean", "possible"),
     ("hydrolysed_vegetable_protein", "derived_from", "wheat", "possible"),
     # sesame
-    ("sesame", "associated_with_allergen", A + "sesame", "definite"),
+    ("sesame", "is_regulated_as", A + "sesame", "definite"),
     ("sesame_oil", "derived_from", "sesame", "definite"),
     ("tahini", "derived_from", "sesame", "definite"),
     ("hummus", "contains_component", "tahini", "definite"),
     ("hummus", "contains_component", "chickpea", "definite"),
     # fish
-    ("fish", "associated_with_allergen", A + "fish", "definite"),
+    ("fish", "is_regulated_as", A + "fish", "definite"),
     ("anchovy", "is_a", "fish", "definite"),
     ("tuna", "is_a", "fish", "definite"),
     ("salmon", "is_a", "fish", "definite"),
@@ -373,14 +424,14 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("fish_sauce", "derived_from", "fish", "definite"),
     ("worcestershire_sauce", "contains_component", "anchovy", "definite"),
     # crustaceans
-    ("crustacean", "associated_with_allergen", A + "crustaceans", "definite"),
+    ("crustacean", "is_regulated_as", A + "crustaceans", "definite"),
     ("shrimp", "is_a", "crustacean", "definite"),
     ("crab", "is_a", "crustacean", "definite"),
     ("lobster", "is_a", "crustacean", "definite"),
     ("crayfish", "is_a", "crustacean", "definite"),
     ("shrimp_paste", "derived_from", "shrimp", "definite"),
     # molluscs
-    ("mollusc", "associated_with_allergen", A + "molluscs", "definite"),
+    ("mollusc", "is_regulated_as", A + "molluscs", "definite"),
     ("squid", "is_a", "mollusc", "definite"),
     ("octopus", "is_a", "mollusc", "definite"),
     ("mussel", "is_a", "mollusc", "definite"),
@@ -390,13 +441,13 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("oyster_sauce", "derived_from", "oyster", "definite"),
     ("oyster_mushroom", "is_a", "mushroom", "definite"),
     # mustard, celery, lupin, sulphites
-    ("mustard", "associated_with_allergen", A + "mustard", "definite"),
+    ("mustard", "is_regulated_as", A + "mustard", "definite"),
     ("mustard_oil", "derived_from", "mustard", "definite"),
     ("mustard_greens", "derived_from", "mustard", "definite"),
-    ("celery", "associated_with_allergen", A + "celery", "definite"),
-    ("lupin", "associated_with_allergen", A + "lupin", "definite"),
+    ("celery", "is_regulated_as", A + "celery", "definite"),
+    ("lupin", "is_regulated_as", A + "lupin", "definite"),
     ("lupin_flour", "derived_from", "lupin", "definite"),
-    ("sulphite", "associated_with_allergen", A + "sulphites", "definite"),
+    ("sulphite", "is_regulated_as", A + "sulphites", "definite"),
     # inverse form, to exercise is_source_of (milk is the source of cream is already covered above)
     ("sunflower", "is_source_of", "sunflower_oil", "definite"),
     ("coconut", "is_source_of", "coconut_oil", "definite"),
@@ -404,6 +455,55 @@ RELATIONS: list[tuple[str, str, str, str]] = [
 
 # Allergen hierarchy: (child, parent). Presence of a child implies the parent; evidence of the parent
 # alone (e.g. "contains gluten") leaves each child as a possibility.
+# Allergen category membership (child, category): wheat is one of the "cereals containing gluten".
+# Not a scientific claim that wheat is a kind of gluten: a wheat finding also counts for that category.
 ALLERGEN_HIERARCHY: list[tuple[str, str]] = [
     ("wheat", "gluten"),
 ]
+
+
+# Every concept's type (see ConceptType). Checked by app/knowledge/validation.py: each concept appears once.
+CONCEPT_TYPES: dict[str, list[str]] = {
+    "food_source": [
+        "milk", "egg", "wheat", "durum_wheat", "spelt", "khorasan_wheat", "barley", "rye", "oats", "triticale",
+        "buckwheat", "rice", "maize", "millet", "quinoa", "peanut", "tree_nut", "almond", "hazelnut", "walnut",
+        "cashew", "pecan", "pistachio", "brazil_nut", "macadamia", "nutmeg", "water_chestnut", "coconut",
+        "soybean", "edamame", "sesame", "fish", "anchovy", "tuna", "salmon", "cod", "sardine", "mackerel",
+        "pomfret", "rohu", "crustacean", "shrimp", "crab", "lobster", "crayfish", "mollusc", "squid", "octopus",
+        "mussel", "oyster", "clam", "scallop", "oyster_mushroom", "mushroom", "mustard", "mustard_greens",
+        "celery", "lupin", "potato", "tomato", "lettuce", "cucumber", "cabbage", "basil", "onion", "garlic",
+        "ginger", "chickpea", "lentil", "pea", "chilli", "black_pepper", "turmeric", "cumin", "coriander",
+        "cardamom", "cinnamon", "clove", "bell_pepper", "spinach", "carrot", "cauliflower", "lemon", "apple",
+        "banana", "kiwi", "sunflower", "chicken", "beef", "pork", "turkey", "duck", "lamb", "butternut_squash",
+        "eggplant", "paprika",
+    ],
+    "ingredient": [
+        "butter", "ghee", "cream", "cheese", "paneer", "yogurt", "milk_powder", "buttermilk", "condensed_milk",
+        "khoa", "egg_white", "egg_yolk", "egg_powder", "wheat_flour", "flour", "semolina", "bulgur", "couscous",
+        "almond_flour", "lupin_flour", "coconut_milk", "almond_milk", "soy_milk", "oat_milk", "rice_milk", "tofu",
+        "tapioca", "sugar", "salt", "water", "yeast", "honey", "golden_syrup", "vinegar", "cocoa", "malt",
+    ],
+    "derivative": [
+        "whey", "whey_powder", "lactose", "sodium_caseinate", "calcium_caseinate", "cocoa_butter", "wheat_starch",
+        "potato_starch", "starch", "peanut_oil", "soybean_oil", "sesame_oil", "mustard_oil", "sunflower_oil",
+        "palm_oil", "olive_oil", "rapeseed_oil", "coconut_oil", "vegetable_oil", "soy_lecithin",
+        "hydrolysed_vegetable_protein",
+    ],
+    "protein": ["milk_protein", "casein", "whey_protein", "lysozyme", "soy_protein", "gluten", "wheat_gluten"],
+    "allergen_substance": ["sulphite"],
+    "additive": [
+        "lecithin", "guar_gum", "xanthan_gum", "citric_acid", "sodium_bicarbonate", "vanillin",
+        "monosodium_glutamate", "cream_of_tartar",
+    ],
+    "prepared_food": [
+        "milk_chocolate", "chocolate", "mayonnaise", "meringue", "seitan", "peanut_butter", "satay_sauce",
+        "marzipan", "gianduja", "praline", "cashew_paste", "soy_sauce", "tamari", "tempeh", "miso", "tahini",
+        "hummus", "fish_sauce", "worcestershire_sauce", "shrimp_paste", "oyster_sauce", "nougat", "pesto",
+        "curry_paste", "gravy", "sausage",
+    ],
+    "general_term": [
+        "spices", "seasoning", "flavouring", "emulsifier", "raising_agent", "flavour_enhancer", "thickener",
+        "seafood",
+    ],
+}
+CONCEPT_TYPE_OF = {slug: t for t, slugs in CONCEPT_TYPES.items() for slug in slugs}

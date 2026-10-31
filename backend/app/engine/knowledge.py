@@ -19,6 +19,8 @@ RELATION_WORDS = {
     "is_a": "is a",
     "contains_component": "contains",
     "associated_with_allergen": "belongs to",
+    "is_regulated_as": "is regulated as",
+    "protein_of": "is a protein of",
 }
 _STOPWORDS = {"and", "or", "with", "of", "in", "from", "the", "a", "an", "contains", "contain"}
 MAX_DEPTH = 6
@@ -44,6 +46,7 @@ class ConceptInfo:
     name: str
     ambiguous_source: bool = False
     foodon_id: str | None = None
+    concept_type: str = "ingredient"
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,7 @@ class ItemResolution:
     concepts: list[ConceptMatch] = field(default_factory=list)
     terms: list[TermMatch] = field(default_factory=list)  # allergen-term matches kept after suppression
     paths: list[tuple[ConceptMatch, AllergenPath]] = field(default_factory=list)
+    interpretations: list[str] = field(default_factory=list)  # other meanings of a homonym, as concept names
 
 
 class KnowledgeBase:
@@ -88,6 +92,7 @@ class KnowledgeBase:
         regulated: dict[str, list[str]] | None = None,  # allergen code -> jurisdictions
         modifiers: set[str] | None = None,
         version: int = 0,
+        homonyms: dict[str, list[str]] | None = None,  # alias -> concept slugs it can mean
     ):
         self.allergens = {a.code: a for a in allergens}
         self._synonyms = [(t, c, term_pattern(t)) for t, c in synonyms]
@@ -100,15 +105,27 @@ class KnowledgeBase:
         self.alias_to_concept = {a: s for a, s in aliases or [] if s in self.concepts}
         # Forward edges: subject -> [(relation, object, certainty)]; is_source_of(a, b) == derived_from(b, a).
         self._edges: dict[str, list[tuple[str, str, str]]] = {}
+        # contains_protein(source, protein) is read from the protein: "casein is a protein of milk". When a
+        # protein has several sources (gluten: wheat, barley, rye) the protein alone does not say which.
+        self.relations = list(relations or [])
+        protein_sources: dict[str, int] = {}
+        for subj, rel, obj, cert in relations or []:
+            if rel == "contains_protein":
+                protein_sources[obj] = protein_sources.get(obj, 0) + 1
         for subj, rel, obj, cert in relations or []:
             if rel == "is_source_of":
                 subj, rel, obj = obj, "derived_from", subj
+            elif rel == "contains_protein":
+                subj, rel, obj = obj, "protein_of", subj
+                if protein_sources[subj] > 1:
+                    cert = "possible"
             self._edges.setdefault(subj, []).append((rel, obj, cert))
         self.parents: dict[str, list[str]] = {}
         for child, parent in hierarchy or []:
             self.parents.setdefault(child, []).append(parent)
         self.regulated = regulated or {}
         self.modifiers = modifiers or set()
+        self.homonyms = {a: [c for c in cs if c in self.concepts] for a, cs in (homonyms or {}).items()}
         self.version = version
         self._path_cache: dict[str, list[AllergenPath]] = {}
 
@@ -211,9 +228,16 @@ class KnowledgeBase:
         excluded = [(code, m.start(), m.end()) for _, code, pat in self._exclusions for m in pat.finditer(item)]
         reach: dict[ConceptMatch, set[str]] = {}
         paths: list[tuple[ConceptMatch, AllergenPath]] = []
+        interpretations: list[str] = []
+        homonym_definite: dict[ConceptMatch, set[str]] = {}
         for cm in concepts:
             ps = [p for p in self.allergen_paths(cm.slug)
                   if not any(c == p.allergen_code and s <= cm.start and cm.end <= e for c, s, e in excluded)]
+            readings = self.homonyms.get(cm.alias)
+            if readings and len(readings) > 1:
+                ps = self._homonym_paths(cm.alias, readings)
+                interpretations += [self.concepts[r].name for r in readings]
+                homonym_definite[cm] = {p.allergen_code for p in ps if p.certainty == "definite"}
             reach[cm] = {p.allergen_code for p in ps}
             paths.extend((cm, p) for p in ps)
 
@@ -221,6 +245,9 @@ class KnowledgeBase:
         # product with no milk relationship) suppresses milk("butter").
         kept = [t for t in terms if not any(cm.start <= t.start and t.end <= cm.end and t.allergen_code not in reach[cm]
                                             for cm in concepts)]
+        # Inside a homonym ("curd"), a direct term match counts only where every meaning agrees.
+        kept = [t for t in kept if not any(cm.start <= t.start and t.end <= cm.end and t.allergen_code not in d
+                                           for cm, d in homonym_definite.items())]
 
         definite = {t.allergen_code for t in kept} | {p.allergen_code for _, p in paths if p.certainty == "definite"}
         possible = {p.allergen_code for _, p in paths if p.certainty == "possible"} - definite
@@ -238,7 +265,22 @@ class KnowledgeBase:
             status = "ambiguous_source"
         else:
             status = "no_known_allergen"
-        return ItemResolution(item, status, concepts, kept, paths)
+        return ItemResolution(item, status, concepts, kept, paths, interpretations)
+
+    def _homonym_paths(self, alias: str, readings: list[str]) -> list[AllergenPath]:
+        """A name with several meanings: definite only for allergens every meaning carries."""
+        per = [{p.allergen_code: p for p in self.allergen_paths(r) if p.certainty == "definite"} for r in readings]
+        everywhere = set.intersection(*(set(d) for d in per))
+        out: dict[tuple[str, str], AllergenPath] = {}
+        for r, d in zip(readings, per):
+            for code, p in d.items():
+                cert = "definite" if code in everywhere else "possible"
+                text = f"'{alias}' can mean {self.concepts[r].name}: {p.text}"
+                out.setdefault((code, cert), AllergenPath(code, cert, p.nodes, text))
+            for p in self.allergen_paths(r):
+                if p.certainty == "possible":
+                    out.setdefault((p.allergen_code, "possible"), p)
+        return [p for (code, cert), p in out.items() if not (cert == "possible" and (code, "definite") in out)]
 
     def _covered(self, item: str, concepts: list[ConceptMatch]) -> bool:
         """True when everything outside the matched concepts is descriptive (organic, roasted, 38%...)."""

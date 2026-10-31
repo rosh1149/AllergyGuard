@@ -1,15 +1,15 @@
 {
  "cases": {
-  "compound_ingredients": 10,
+  "compound_ingredients": 12,
   "evidence_fusion": 14,
   "normalization": 43,
   "ocr_correction": 25,
   "ontology_mapping": 52,
-  "provenance": 120,
+  "provenance": 128,
   "safety": 65,
-  "semantic_reasoning": 79,
+  "semantic_reasoning": 89,
   "synonyms": 49,
-  "uncertainty": 14
+  "uncertainty": 20
  },
  "metrics": {
   "compound_ingredients.extraction_accuracy": 1.0,

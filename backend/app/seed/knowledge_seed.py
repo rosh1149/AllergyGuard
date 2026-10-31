@@ -25,7 +25,7 @@ from app.models import (
     RegulatoryList,
     RelationType,
 )
-from app.seed.concept_data import ALLERGEN_HIERARCHY, CONCEPTS, RELATIONS
+from app.seed.concept_data import ALLERGEN_HIERARCHY, CONCEPT_TYPE_OF, CONCEPTS, RELATIONS
 from app.seed.regulatory_data import REGULATORY_LISTS
 
 log = logging.getLogger(__name__)
@@ -42,7 +42,8 @@ def seed_knowledge(db: Session) -> None:
     allergens = {a.code: a for a in db.scalars(select(Allergen)).all()}
     existing_version = current_version(db)
     target = existing_version or 1
-    added: dict[str, int] = {"concepts": 0, "aliases": 0, "relations": 0, "hierarchy": 0, "regulatory_entries": 0}
+    added: dict[str, int] = {"concepts": 0, "aliases": 0, "relations": 0, "hierarchy": 0, "regulatory_entries": 0,
+                             "concepts_updated": 0, "relations_retired": 0}
 
     concepts = {c.slug: c for c in db.scalars(select(IngredientConcept)).all()}
     for slug, (name, aliases, ambiguous) in CONCEPTS.items():
@@ -53,6 +54,7 @@ def seed_knowledge(db: Session) -> None:
                 slug=slug,
                 name=name,
                 ambiguous_source=ambiguous,
+                concept_type=CONCEPT_TYPE_OF[slug],
                 foodon_id=fo["foodon_id"] if fo else None,
                 foodon_label=fo["foodon_label"] if fo else None,
                 foodon_note=(
@@ -68,6 +70,10 @@ def seed_knowledge(db: Session) -> None:
             db.flush()
             concepts[slug] = c
             added["concepts"] += 1
+        elif c.status == KnowledgeStatus.curated and (c.concept_type, c.ambiguous_source) != (CONCEPT_TYPE_OF[slug], ambiguous):
+            # Seeded concepts follow the seed; reviewer-added ones are only changed through proposals.
+            c.concept_type, c.ambiguous_source = CONCEPT_TYPE_OF[slug], ambiguous
+            added["concepts_updated"] += 1
         have = {a.alias for a in c.aliases}
         for alias in dict.fromkeys(a.lower() for a in aliases):
             if alias not in have:
@@ -76,13 +82,16 @@ def seed_knowledge(db: Session) -> None:
                 added["aliases"] += 1
     db.flush()
 
-    rels = {(r.subject_id, r.relation, r.object_concept_id, r.object_allergen_id) for r in db.scalars(select(ConceptRelation)).all()}
+    all_rels = db.scalars(select(ConceptRelation)).all()
+    rels = {(r.subject_id, r.relation, r.object_concept_id, r.object_allergen_id) for r in all_rels}
+    wanted: set = set()
     for subj, rel, obj, certainty in RELATIONS:
         s = concepts[subj]
         if obj.startswith("allergen:"):
             key = (s.id, RelationType(rel), None, allergens[obj.split(":", 1)[1]].id)
         else:
             key = (s.id, RelationType(rel), concepts[obj].id, None)
+        wanted.add(key)
         if key in rels:
             continue
         db.add(ConceptRelation(subject_id=key[0], relation=key[1], object_concept_id=key[2], object_allergen_id=key[3],
@@ -90,6 +99,13 @@ def seed_knowledge(db: Session) -> None:
                                added_in_version=target + (1 if existing_version else 0)))
         rels.add(key)
         added["relations"] += 1
+    # Seeded relations no longer in the seed (e.g. associated_with_allergen now is_regulated_as) are
+    # retired, never deleted, so earlier assessments stay traceable. Reviewer-added ones are untouched.
+    for r in all_rels:
+        key = (r.subject_id, r.relation, r.object_concept_id, r.object_allergen_id)
+        if r.status == KnowledgeStatus.curated and r.source == SEED_SOURCE and key not in wanted:
+            r.status = KnowledgeStatus.retired
+            added["relations_retired"] += 1
 
     edges = {(h.child_id, h.parent_id) for h in db.scalars(select(AllergenParent)).all()}
     for child, parent in ALLERGEN_HIERARCHY:

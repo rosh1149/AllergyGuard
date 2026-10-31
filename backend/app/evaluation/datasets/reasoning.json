@@ -1,6 +1,6 @@
 {
  "description": "Ingredient -> allergens it definitely indicates, and allergens it possibly indicates (unstated source). Cocoa, coconut and look-alikes must not be linked to milk or nuts.",
- "version": 1,
+ "version": 2,
  "cases": [
   {
    "input": "casein",
@@ -83,7 +83,9 @@
   {
    "input": "dark chocolate",
    "definite": [],
-   "possible": []
+   "possible": [
+    "milk"
+   ]
   },
   {
    "input": "cream of tartar",
@@ -506,6 +508,85 @@
    "possible": []
   },
   {
+   "input": "gluten",
+   "definite": [
+    "gluten"
+   ],
+   "possible": [
+    "wheat"
+   ]
+  },
+  {
+   "input": "wheat gluten",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "casein",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "curd",
+   "definite": [],
+   "possible": [
+    "milk",
+    "soy"
+   ]
+  },
+  {
+   "input": "bean curd",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "seafood",
+   "definite": [],
+   "possible": [
+    "crustaceans",
+    "fish",
+    "molluscs"
+   ]
+  },
+  {
+   "input": "chocolate (sugar, cocoa mass, milk powder)",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "chocolate (sugar, cocoa mass, cocoa butter)",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "spices (cumin, coriander and others)",
+   "definite": [],
+   "possible": [
+    "celery",
+    "mustard"
+   ]
+  },
+  {
+   "input": "sausage",
+   "definite": [],
+   "possible": [
+    "gluten",
+    "milk",
+    "mustard",
+    "sulphites",
+    "wheat"
+   ]
+  },
+  {
    "input": "sugar",
    "definite": [],
    "possible": []
@@ -535,5 +616,8 @@
    "definite": [],
    "possible": []
   }
+ ],
+ "changes": [
+  "v2 (Stage 1): 'dark chocolate' now possibly carries milk (dark chocolate often contains milk fat or milk solids); cases added for proteins, homonyms, general terms and listed components."
  ]
 }

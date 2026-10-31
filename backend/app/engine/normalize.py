@@ -60,6 +60,7 @@ class ParsedItem:
     role: str  # ingredient | compound | component | class_label
     parent: str | None = None
     children: list["ParsedItem"] = field(default_factory=list)
+    incomplete: str = ""  # why this item's component list looks incomplete ("" = no sign of that)
 
 
 @dataclass
@@ -74,11 +75,14 @@ class NormalizedIngredient:
     resolution: ItemResolution | None
     corrections: list[str] = field(default_factory=list)
     suggestion: str | None = None  # a guess that was not accepted (see the safety rule)
+    candidates: list[str] = field(default_factory=list)  # close matches considered but not accepted
+    unresolved_reasons: list[str] = field(default_factory=list)  # why the text could not be identified
+    incomplete: str = ""  # the component list of this item looks cut off or open-ended
 
     @property
     def counts(self) -> bool:
-        """Whether this item is evidence on its own (class names and source qualifiers are not)."""
-        return self.role not in ("class_label", "source_qualifier")
+        """Whether this item is evidence on its own (class names, source qualifiers and list notes are not)."""
+        return self.role not in ("class_label", "source_qualifier", "list_note")
 
 
 # ---------- 1. cleaning and 6. parsing ----------
@@ -158,25 +162,54 @@ def _head_and_inner(piece: str) -> tuple[str, list[str]]:
     return "".join(head).strip(), [x for x in inner if x.strip()]
 
 
+_OPEN_ENDED = re.compile(r"(?:^|\s+)((?:and\s+|&\s+)?(?:etc|others?|more|other\s+(?:ingredients|spices|herbs)))\s*$")
+OPEN_ENDED_NOTE = "the list ends with '{0}', so not every ingredient is named"
+UNCLOSED_NOTE = "a bracket is not closed, so the list may be cut off"
+EMPTY_NOTE = "its brackets are empty, so its components are not given"
+
+
 def parse_ingredients(text: str, parent: str | None = None) -> list[ParsedItem]:
-    if parent is None:
+    top = parent is None
+    if top:
         text = _INGREDIENTS_PREFIX.sub("", unicodedata.normalize("NFKC", text))
+        text = re.sub(r"\s*(?:\.{3}|…)", " etc", text)  # "sugar, ..." -> "sugar, etc"
     items: list[ParsedItem] = []
     for piece in _split_top(text):
+        open_note = ""
+        lowered = " ".join(piece.lower().split()).rstrip(" .,;")
+        m = _OPEN_ENDED.search(lowered) if not re.search(r"[)\]}]\s*$", lowered) else None
+        if m:
+            open_note = OPEN_ENDED_NOTE.format(m.group(1))
+            piece = lowered[: m.start()].strip()
+            if not piece:
+                items.append(ParsedItem("", "list_note", parent, incomplete=open_note))
+                continue
         head, inners = _head_and_inner(piece)
+        if re.search(r"[(\[{]\s*[)\]}]", piece) or (inners and not any(i.strip() for i in inners)):
+            role = "class_label" if apply_spelling(clean(head)) in CLASS_LABELS else ("component" if parent else "ingredient")
+            items.append(ParsedItem(clean(head), role, parent, incomplete=EMPTY_NOTE))
+            continue
         head_c = clean(head)
         is_header = any(p.match(re.sub(r"\s+", " ", head.lower().strip())) for p in _HEADERS)
         children = [c for inner in inners for c in parse_ingredients(inner, parent=None if is_header else (head_c or parent))]
         if not head_c or is_header:
             items.extend(children)  # "contains 2% or less of: salt, ..." -> just the ingredients
         elif not children:
-            items.append(ParsedItem(head_c, "component" if parent else "ingredient", parent))
+            items.append(ParsedItem(head_c, "component" if parent else "ingredient", parent, incomplete=open_note))
+            if open_note:  # the trailing "etc" belongs to the list, not to this ingredient
+                items.append(ParsedItem("", "list_note", parent, incomplete=open_note))
         elif apply_spelling(head_c) in CLASS_LABELS:
             items.append(ParsedItem(head_c, "class_label", parent, children))
             items.extend(_with_parent(children, head_c))
         else:
-            items.append(ParsedItem(head_c, "compound", parent, children))
+            note = next((c.incomplete for c in children if c.role == "list_note"), "")
+            if open_note:
+                items.append(ParsedItem("", "list_note", parent, incomplete=open_note))
+            items.append(ParsedItem(head_c, "compound", parent, children, incomplete=note))
             items.extend(_with_parent(children, head_c))
+    if top and items and sum(text.count(c) for c in "([{") > sum(text.count(c) for c in ")]}"):
+        last = next((i for i in reversed(items) if i.role in ("compound", "class_label")), items[-1])
+        last.incomplete = last.incomplete or UNCLOSED_NOTE
     return items
 
 
@@ -243,6 +276,17 @@ def ocr_correct(kb: KnowledgeBase, text: str) -> tuple[str, list[str]]:
     return " ".join(out), notes
 
 
+def fuzzy_candidates(kb: KnowledgeBase, text: str) -> list[str]:
+    """Close known names that were NOT accepted because two or more were about equally close."""
+    s = get_settings()
+    words, phrases = _vocab(kb)
+    if len(text) >= s.fuzzy_min_length:
+        best = process.extract(text, phrases, scorer=fuzz.ratio, limit=3, score_cutoff=s.fuzzy_phrase_threshold - 5)
+        if len(best) > 1 and best[0][1] - best[1][1] < s.fuzzy_margin:
+            return [b[0] for b in best]
+    return []
+
+
 def fuzzy_correct(kb: KnowledgeBase, text: str) -> tuple[str, list[str], float]:
     """Best fuzzy replacement for the whole text, else for unknown words. Returns (text, notes, score)."""
     s = get_settings()
@@ -266,6 +310,9 @@ def fuzzy_correct(kb: KnowledgeBase, text: str) -> tuple[str, list[str], float]:
 
 def _resolve(kb: KnowledgeBase, text: str) -> ItemResolution:
     return kb.resolve_item(text, nonspecific=is_nonspecific(text))
+
+
+_STOP = {"and", "or", "with", "of", "in", "from", "the", "a", "an"}
 
 
 def _allergens(res: ItemResolution) -> set[str]:
@@ -308,7 +355,24 @@ def normalize_item(kb: KnowledgeBase, original: str, role: str, parent: str | No
             return NormalizedIngredient(original, cand, role, parent, how, conf, r, corrections + notes)
         if r.status != "unresolved" and suggestion is None:
             suggestion = cand  # a harmless guess: kept as a suggestion only
-    return NormalizedIngredient(original, spelled, role, parent, "none", 0.0, res, corrections, suggestion)
+    return NormalizedIngredient(original, spelled, role, parent, "none", 0.0, res, corrections, suggestion,
+                                candidates=([suggestion] if suggestion else []) + [c for c in fuzzy_candidates(kb, spelled) if c != suggestion],
+                                unresolved_reasons=_why_unresolved(kb, spelled, suggestion, fuzzy_candidates(kb, spelled)))
+
+
+def _why_unresolved(kb: KnowledgeBase, text: str, suggestion: str | None, close: list[str]) -> list[str]:
+    words, _ = _vocab(kb)
+    unknown = [w for w in _WORD.findall(text) if w not in words and w not in _STOP]
+    reasons = []
+    if unknown:
+        reasons.append("unknown word" + ("s" if len(unknown) > 1 else "") + ": " + ", ".join(unknown))
+    if len(close) > 1:
+        reasons.append("several close matches, none clearly best: " + ", ".join(close))
+    if suggestion:
+        reasons.append(f"the closest match '{suggestion}' would mean no allergen, so the guess was not accepted")
+    if not close and not suggestion:
+        reasons.append("no close match in the knowledge base")
+    return reasons
 
 
 def _qualify(kb: KnowledgeBase, head: NormalizedIngredient, kids: list[NormalizedIngredient]) -> bool:
@@ -317,11 +381,30 @@ def _qualify(kb: KnowledgeBase, head: NormalizedIngredient, kids: list[Normalize
     The source replaces the head's own (possible) source relationships."""
     if not head.resolution or not head.resolution.concepts or not kids:
         return False
+    if head.incomplete:  # "spices (cumin, and others)": the named components are not all of them
+        return False
     if not any(kb.concepts[c.slug].ambiguous_source for c in head.resolution.concepts):
         return False
     if any(k.resolution is None or not k.resolution.concepts or k.method in ("ocr_correction", "fuzzy") for k in kids):
         return False
-    head_name = kb.concepts[head.resolution.concepts[0].slug].name
+    head_concept = kb.concepts[head.resolution.concepts[0].slug]
+    if head_concept.concept_type in ("prepared_food", "general_term"):
+        # "chocolate (sugar, cocoa mass, milk powder)", "spices (cumin, coriander)": the brackets list the
+        # components. They stay components and carry their own evidence; the name's unstated possible
+        # ingredients are replaced by them because the full list is given.
+        r = head.resolution
+        kept = [(cm, p) for cm, p in r.paths if p.certainty == "definite"]
+        for k in kids:  # the name carries what its listed components carry
+            kept += [(cm, AllergenPath(p.allergen_code, p.certainty, p.nodes, f"{head_concept.name} contains {p.text}"))
+                     for cm, p in k.resolution.paths]
+        terms = list(r.terms) + [t for k in kids for t in k.resolution.terms]
+        definite = {t.allergen_code for t in terms} | {p.allergen_code for _, p in kept if p.certainty == "definite"}
+        possible = {p.allergen_code for _, p in kept} - definite
+        status = "allergen_linked" if definite else ("possible_allergen" if possible else "no_known_allergen")
+        head.resolution = ItemResolution(r.text, status, r.concepts, terms, kept, r.interpretations)
+        head.corrections.append("components are listed, so they replace the name's possible ingredients")
+        return False
+    head_name = head_concept.name
     paths, terms, concepts = [], [], list(head.resolution.concepts)
     for k in kids:
         concepts += k.resolution.concepts
@@ -379,7 +462,11 @@ def _normalize_ingredients(kb: KnowledgeBase, text: str, ocr: bool = False) -> l
         for it in items:
             if id(it) in by_item:
                 continue
-            n = normalize_item(kb, it.original, it.role, it.parent, ocr)
+            if it.role == "list_note":
+                n = NormalizedIngredient(it.original, "", "list_note", it.parent, "none", 0.0, None, incomplete=it.incomplete)
+            else:
+                n = normalize_item(kb, it.original, it.role, it.parent, ocr)
+                n.incomplete = it.incomplete
             by_item[id(it)] = n
             out.append(n)
 

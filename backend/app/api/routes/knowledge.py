@@ -7,7 +7,9 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, or_, select
 
 from app.api.deps import DB, CurrentAdmin, CurrentUser
-from app.engine.service import get_knowledge_base, knowledge_version
+from app.engine.service import get_knowledge_base, knowledge_version, load_knowledge_base
+from app.knowledge.validation import validate_kb
+from app.seed.knowledge_seed import FOODON as FOODON_META
 from app.engine.assess import resolution_out
 from app.engine.normalize import normalize_ingredients
 from app.engine.types import IngredientResolution
@@ -72,6 +74,12 @@ def summary(_: CurrentAdmin, db: DB) -> dict[str, Any]:
         "relations": count(ConceptRelation, ConceptRelation.status != KnowledgeStatus.retired),
         "pending_proposals": count(KnowledgeProposal, KnowledgeProposal.status == ProposalStatus.pending),
         "open_unresolved": count(UnresolvedIngredient, UnresolvedIngredient.status == UnresolvedStatus.open),
+        "concept_types": dict(db.execute(select(IngredientConcept.concept_type, func.count())
+                                         .group_by(IngredientConcept.concept_type)).all()),
+        "ontology": {"name": "FoodOn", "release_commit": FOODON_META["foodon_commit"],
+                     "release_date": FOODON_META["foodon_date"], "match_rule": FOODON_META["match_rule"],
+                     "changes": "through foodon_mapping proposals; see /knowledge/changes"},
+        "graph_rule_violations": validate_kb(load_knowledge_base(db)),
         "versions": [
             {"version": v.version, "note": v.note, "created_at": v.created_at}
             for v in db.scalars(select(KnowledgeVersion).order_by(KnowledgeVersion.version.desc()).limit(20)).all()
@@ -81,7 +89,8 @@ def summary(_: CurrentAdmin, db: DB) -> dict[str, Any]:
 
 def _concept_out(db: DB, c: IngredientConcept, detail: bool = False) -> dict[str, Any]:
     out = {
-        "slug": c.slug, "name": c.name, "ambiguous_source": c.ambiguous_source, "status": c.status.value,
+        "slug": c.slug, "name": c.name, "concept_type": c.concept_type, "ambiguous_source": c.ambiguous_source,
+        "status": c.status.value,
         "foodon_id": c.foodon_id, "foodon_label": c.foodon_label, "foodon_note": c.foodon_note,
         "source": c.source, "added_in_version": c.added_in_version,
         "aliases": sorted(a.alias for a in c.aliases if a.status != KnowledgeStatus.retired),
@@ -190,7 +199,8 @@ def list_unresolved(_: CurrentAdmin, db: DB, unresolved_status: Annotated[Unreso
     rows = db.scalars(select(UnresolvedIngredient).where(UnresolvedIngredient.status == unresolved_status)
                       .order_by(UnresolvedIngredient.occurrences.desc(), UnresolvedIngredient.last_seen.desc()).limit(limit)).all()
     return [{"id": u.id, "text": u.text, "occurrences": u.occurrences, "source_types": u.source_types,
-             "first_seen": u.first_seen, "last_seen": u.last_seen, "status": u.status.value, "note": u.note} for u in rows]
+             "first_seen": u.first_seen, "last_seen": u.last_seen, "status": u.status.value, "note": u.note,
+             "candidates": u.candidates or [], "reasons": u.reasons or []} for u in rows]
 
 
 @router.post("/unresolved/{item_id}")

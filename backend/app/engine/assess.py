@@ -76,6 +76,7 @@ class _Prepared:
     age_days: int | None = None
     fresh: bool = True
     unresolved: list[str] = field(default_factory=list)
+    incomplete: list[str] = field(default_factory=list)
 
 
 CROSS_CONTACT_KINDS = {
@@ -121,6 +122,8 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: 
     fresh = src.max_age_days is None or age is None or age <= src.max_age_days
     unresolved = list(dict.fromkeys(
         n.original for n in normalized if n.counts and n.resolution is not None and n.resolution.status == "unresolved"))
+    incomplete = list(dict.fromkeys(
+        (f"'{n.original}': " if n.original else "") + n.incomplete for n in normalized if n.incomplete))
 
     reason = ""
     if src.type not in ABSENCE_CAPABLE:
@@ -135,10 +138,15 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: 
         reason = "No ingredients were found in this source."
     elif not fresh:
         reason = f"The information is {age} days old (more than {src.max_age_days}) and may be out of date."
-    elif unresolved:
-        reason = "It contains ingredient text that could not be identified: " + ", ".join(unresolved) + "."
+    elif unresolved or incomplete:
+        parts = []
+        if unresolved:
+            parts.append("It contains ingredient text that could not be identified: " + ", ".join(unresolved) + ".")
+        if incomplete:
+            parts.append("The ingredient list looks incomplete: " + "; ".join(incomplete) + ".")
+        reason = " ".join(parts)
     return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason, normalized=normalized,
-                     collected_at=now, age_days=age, fresh=fresh, unresolved=unresolved)
+                     collected_at=now, age_days=age, fresh=fresh, unresolved=unresolved, incomplete=incomplete)
 
 
 def _ref(
@@ -549,6 +557,9 @@ def assess(
         limitations.append(
             "Not recognised by the ingredient knowledge base (checked by name only): " + ", ".join(unresolved) + "."
         )
+    incomplete_all = _dedupe([x for p in prepared for x in p.incomplete])
+    if incomplete_all:
+        limitations.append("Part of the ingredient list looks incomplete: " + "; ".join(incomplete_all) + ".")
     if not sources:
         limitations.append("No ingredient information was available.")
 
@@ -652,7 +663,7 @@ def _completeness(p: _Prepared, conflicts: list[Conflict]) -> str:
         return "unavailable"
     if any(c.kind == "ingredient_list_mismatch" and p.src.id in c.source_ids for c in conflicts):
         return "conflicting"
-    if not p.src.complete or p.unresolved:
+    if not p.src.complete or p.unresolved or p.incomplete:
         return "partial"
     return "complete"
 
@@ -669,7 +680,7 @@ def resolution_out(kb: KnowledgeBase, source_id: str, n: NormalizedIngredient) -
         text=n.text,
         role=n.role,
         parent=n.parent,
-        status=r.status if r else "class_name",
+        status=r.status if r else ("list_note" if n.role == "list_note" else "class_name"),
         match_method=n.method,
         match_confidence=n.confidence,
         corrections=n.corrections,
@@ -680,4 +691,8 @@ def resolution_out(kb: KnowledgeBase, source_id: str, n: NormalizedIngredient) -
         allergens=[a for a in allergens if a in kb.allergens],
         possible_allergens=_dedupe([path.allergen_code for path in possible if path.allergen_code not in allergens]),
         relationship_path=(definite or possible)[0].text if (definite or possible) else "",
+        candidates=n.candidates,
+        unresolved_reasons=n.unresolved_reasons,
+        interpretations=r.interpretations if r else [],
+        incomplete=n.incomplete,
     )

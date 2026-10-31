@@ -1,6 +1,6 @@
 {
  "description": "Compound ingredients: sub-ingredients, class names and headers -> (role, text, parent).",
- "version": 1,
+ "version": 2,
  "cases": [
   {
    "input": "chocolate (sugar, cocoa mass, milk powder), salt",
@@ -228,6 +228,56 @@
    ]
   },
   {
+   "input": "chocolate (sugar, cocoa, etc), salt",
+   "items": [
+    [
+     "compound",
+     "chocolate",
+     null
+    ],
+    [
+     "component",
+     "sugar",
+     "chocolate"
+    ],
+    [
+     "component",
+     "cocoa",
+     "chocolate"
+    ],
+    [
+     "list_note",
+     "",
+     "chocolate"
+    ],
+    [
+     "ingredient",
+     "salt",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "water, sugar, colour (",
+   "items": [
+    [
+     "ingredient",
+     "water",
+     null
+    ],
+    [
+     "ingredient",
+     "sugar",
+     null
+    ],
+    [
+     "ingredient",
+     "colour",
+     null
+    ]
+   ]
+  },
+  {
    "input": "flavour enhancer (e621); acidity regulator: citric acid",
    "items": [
     [
@@ -252,5 +302,8 @@
     ]
    ]
   }
+ ],
+ "changes": [
+  "v2 (Stage 1): cases added for lists that are cut off or open-ended."
  ]
 }

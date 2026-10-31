@@ -48,8 +48,8 @@ def test_regression_cases(kb, text, expected):
 @pytest.mark.parametrize(
     "text, allergen, chain",
     [
-        ("casein", "milk", "casein, is a milk protein, derived from milk"),
-        ("sodium caseinate", "milk", "sodium caseinate, derived from casein, is a milk protein, derived from milk"),
+        ("casein", "milk", "casein, is a protein of milk"),
+        ("sodium caseinate", "milk", "sodium caseinate, derived from casein, is a protein of milk"),
         ("almond flour", "tree_nuts", "almond flour, derived from almond, is a tree nut"),
         ("soy lecithin", "soy", "soy lecithin, derived from soybean"),
         ("marzipan", "tree_nuts", "marzipan, contains almond, is a tree nut"),
@@ -65,7 +65,7 @@ def test_relationship_paths_explain_findings(kb, text, allergen, chain):
 def test_reason_shows_the_chain(kb):
     mine, _ = run(kb, "Ingredients: sugar, sodium caseinate, salt", {"milk"})
     assert mine["milk"].outcome == P
-    assert "derived from casein, is a milk protein, derived from milk" in mine["milk"].reasons[0]
+    assert "derived from casein, is a protein of milk" in mine["milk"].reasons[0]
     ev = mine["milk"].evidence[0]
     assert ev.concept == "sodium_caseinate" and ev.certainty == "definite"
 
@@ -196,7 +196,7 @@ def test_proposal_workflow_four_eyes_and_versioning(client):
 
     p = client.post("/api/knowledge/proposals", headers=admin, json={
         "kind": "concept", "reason": "Common in Indian sweets", "source": "Team review",
-        "payload": {"slug": "chironji", "name": "chironji", "aliases": ["charoli"]}}).json()
+        "payload": {"slug": "chironji", "name": "chironji", "aliases": ["charoli"], "concept_type": "food_source"}}).json()
     # The proposer cannot approve their own change.
     assert client.post(f"/api/knowledge/proposals/{p['id']}/decision", headers=admin, json={"approve": True}).status_code == 403
     r = client.post(f"/api/knowledge/proposals/{p['id']}/decision", headers=reviewer, json={"approve": True})
@@ -221,18 +221,23 @@ def test_proposal_workflow_four_eyes_and_versioning(client):
 def test_change_that_breaks_regression_cases_is_not_published(client):
     admin, reviewer = (login(client, e) for e in DEMO_ADMIN_EMAILS)
     v0 = client.get("/api/knowledge/summary", headers=admin).json()["version"]
-    # Wrong: claims cocoa contains milk. "cocoa powder" must stay milk-free.
+    # Wrong: "cocoa contains milk" is refused straight away by the graph rules (Stage 1), because it
+    # would make chocolate, whose milk content is not stated, definitely contain milk.
+    bad = client.post("/api/knowledge/proposals", headers=admin, json={
+        "kind": "relation", "payload": {"subject": "cocoa", "relation": "contains_component", "object": "milk"}})
+    assert bad.status_code == 422 and "knowledge-graph rules" in bad.text
+    # Wrong but structurally valid: "rice is a kind of wheat". "rice flour" must stay gluten-free.
     p = client.post("/api/knowledge/proposals", headers=admin, json={
-        "kind": "relation", "payload": {"subject": "cocoa", "relation": "contains_component", "object": "milk"}}).json()
+        "kind": "relation", "payload": {"subject": "rice", "relation": "is_a", "object": "wheat"}}).json()
     r = client.post(f"/api/knowledge/proposals/{p['id']}/decision", headers=reviewer, json={"approve": True})
     assert r.status_code == 409
-    assert any("cocoa powder" in f for f in r.json()["detail"]["failures"])
+    assert any("rice flour" in f for f in r.json()["detail"]["failures"])
     assert client.get("/api/knowledge/summary", headers=admin).json()["version"] == v0
     pending = client.get("/api/knowledge/proposals?status=pending", headers=admin).json()
     assert any(x["id"] == p["id"] and "regression cases failed" in x["decision_note"] for x in pending)
     # It can still be rejected.
     assert client.post(f"/api/knowledge/proposals/{p['id']}/decision", headers=reviewer,
-                       json={"approve": False, "note": "Cocoa is not a milk product"}).json()["status"] == "rejected"
+                       json={"approve": False, "note": "Rice is not wheat"}).json()["status"] == "rejected"
 
 
 def test_unresolved_queue(client):

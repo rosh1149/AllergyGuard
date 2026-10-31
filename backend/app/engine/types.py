@@ -201,6 +201,10 @@ class IngredientResolution(BaseModel):
     match_confidence: float = 1.0
     corrections: list[str] = Field(default_factory=list)
     suggestion: str | None = None  # an unaccepted guess for an unresolved item
+    candidates: list[str] = Field(default_factory=list)  # close matches considered but not accepted
+    unresolved_reasons: list[str] = Field(default_factory=list)  # why the text could not be identified
+    interpretations: list[str] = Field(default_factory=list)  # meanings of a name with several meanings
+    incomplete: str = ""  # why this item's component list looks incomplete
     concept: str | None = None
     concept_name: str = ""
     foodon_id: str | None = None

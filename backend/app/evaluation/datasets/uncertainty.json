@@ -1,6 +1,6 @@
 {
  "description": "Incomplete, ambiguous or unreliable evidence: the answer must be UNKNOWN, never NOT LISTED.",
- "version": 1,
+ "version": 2,
  "cases": [
   {
    "id": "U01",
@@ -215,6 +215,102 @@
    "expect": {
     "milk": "UNKNOWN"
    }
+  },
+  {
+   "id": "U15",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "fruit, nuts etc."
+    }
+   ],
+   "expect": {
+    "peanuts": "UNKNOWN",
+    "milk": "UNKNOWN"
+   },
+   "note": "'etc.': not every ingredient is named"
+  },
+  {
+   "id": "U16",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "water, sugar, lemon juice, colour ("
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "list cut off mid-bracket"
+  },
+  {
+   "id": "U17",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "curd",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN",
+    "soy": "UNKNOWN"
+   },
+   "note": "'curd': yogurt or bean curd"
+  },
+  {
+   "id": "U18",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, dark chocolate, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "chocolate without its components"
+  },
+  {
+   "id": "U19",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, chocolate (sugar, cocoa mass, cocoa butter), salt"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "components listed and complete: absence can be checked"
+  },
+  {
+   "id": "U20",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "spices (cumin, coriander and others)"
+     ]
+    }
+   ],
+   "expect": {
+    "mustard": "UNKNOWN"
+   },
+   "note": "open-ended component list"
   }
+ ],
+ "changes": [
+  "v2 (Stage 1): cases added for incomplete lists, homonyms and made foods without components."
  ]
 }

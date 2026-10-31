@@ -152,11 +152,15 @@ export function UnresolvedPage() {
       {items?.length === 0 && <p className="muted">Nothing to review.</p>}
       {items && items.length > 0 && (
         <div className="table-wrap card"><table>
-          <thead><tr><th>Text</th><th>Seen</th><th>Where</th><th>Action</th></tr></thead>
+          <thead><tr><th>Text</th><th>Why unresolved</th><th>Seen</th><th>Where</th><th>Action</th></tr></thead>
           <tbody>
             {items.map((u) => (
               <tr key={u.id}>
                 <td><strong>{u.text}</strong><br /><small className="muted">last {formatDate(u.last_seen)}</small></td>
+                <td>
+                  <small>{(u.reasons ?? []).join("; ")}</small>
+                  {u.candidates && u.candidates.length > 0 && <div><small className="muted">Not accepted: {u.candidates.join(", ")}</small></div>}
+                </td>
                 <td>{u.occurrences}×</td>
                 <td><small>{u.source_types.join(", ").replace(/_/g, " ")}</small></td>
                 <td>
