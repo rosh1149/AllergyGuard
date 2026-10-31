@@ -1,0 +1,214 @@
+{
+ "description": "Ingredient phrases with modifiers and forms -> canonical concept.",
+ "version": 1,
+ "cases": [
+  {
+   "input": "sodium caseinate",
+   "concept": "sodium_caseinate"
+  },
+  {
+   "input": "calcium caseinate",
+   "concept": "calcium_caseinate"
+  },
+  {
+   "input": "whey powder",
+   "concept": "whey_powder"
+  },
+  {
+   "input": "whey protein concentrate",
+   "concept": "whey_protein"
+  },
+  {
+   "input": "organic whole milk powder",
+   "concept": "milk_powder"
+  },
+  {
+   "input": "roasted hazelnuts",
+   "concept": "hazelnut"
+  },
+  {
+   "input": "chopped almonds",
+   "concept": "almond"
+  },
+  {
+   "input": "almond flour",
+   "concept": "almond_flour"
+  },
+  {
+   "input": "ground almonds",
+   "concept": "almond_flour"
+  },
+  {
+   "input": "soy lecithin",
+   "concept": "soy_lecithin"
+  },
+  {
+   "input": "soya lecithin",
+   "concept": "soy_lecithin"
+  },
+  {
+   "input": "cocoa powder",
+   "concept": "cocoa"
+  },
+  {
+   "input": "cocoa butter",
+   "concept": "cocoa_butter"
+  },
+  {
+   "input": "milk chocolate",
+   "concept": "milk_chocolate"
+  },
+  {
+   "input": "dark chocolate",
+   "concept": "chocolate"
+  },
+  {
+   "input": "peanut butter",
+   "concept": "peanut_butter"
+  },
+  {
+   "input": "toasted sesame oil",
+   "concept": "sesame_oil"
+  },
+  {
+   "input": "free range egg yolk",
+   "concept": "egg_yolk"
+  },
+  {
+   "input": "pasteurised egg white",
+   "concept": "egg_white"
+  },
+  {
+   "input": "dried egg powder",
+   "concept": "egg_powder"
+  },
+  {
+   "input": "durum wheat semolina",
+   "concept": "semolina"
+  },
+  {
+   "input": "wholemeal flour",
+   "concept": "wheat_flour"
+  },
+  {
+   "input": "rolled oats",
+   "concept": "oats"
+  },
+  {
+   "input": "barley malt extract",
+   "concept": "malt"
+  },
+  {
+   "input": "rice flour",
+   "concept": "rice"
+  },
+  {
+   "input": "potato starch",
+   "concept": "potato_starch"
+  },
+  {
+   "input": "wheat starch",
+   "concept": "wheat_starch"
+  },
+  {
+   "input": "fish sauce",
+   "concept": "fish_sauce"
+  },
+  {
+   "input": "oyster sauce",
+   "concept": "oyster_sauce"
+  },
+  {
+   "input": "oyster mushroom",
+   "concept": "oyster_mushroom"
+  },
+  {
+   "input": "coconut milk",
+   "concept": "coconut_milk"
+  },
+  {
+   "input": "water chestnut",
+   "concept": "water_chestnut"
+  },
+  {
+   "input": "nutmeg",
+   "concept": "nutmeg"
+  },
+  {
+   "input": "buckwheat",
+   "concept": "buckwheat"
+  },
+  {
+   "input": "mustard oil",
+   "concept": "mustard_oil"
+  },
+  {
+   "input": "tofu",
+   "concept": "tofu"
+  },
+  {
+   "input": "soy sauce",
+   "concept": "soy_sauce"
+  },
+  {
+   "input": "tamari",
+   "concept": "tamari"
+  },
+  {
+   "input": "miso",
+   "concept": "miso"
+  },
+  {
+   "input": "tempeh",
+   "concept": "tempeh"
+  },
+  {
+   "input": "seitan",
+   "concept": "seitan"
+  },
+  {
+   "input": "marzipan",
+   "concept": "marzipan"
+  },
+  {
+   "input": "praline",
+   "concept": "praline"
+  },
+  {
+   "input": "gianduja",
+   "concept": "gianduja"
+  },
+  {
+   "input": "satay sauce",
+   "concept": "satay_sauce"
+  },
+  {
+   "input": "hummus",
+   "concept": "hummus"
+  },
+  {
+   "input": "mayonnaise",
+   "concept": "mayonnaise"
+  },
+  {
+   "input": "meringue",
+   "concept": "meringue"
+  },
+  {
+   "input": "worcestershire sauce",
+   "concept": "worcestershire_sauce"
+  },
+  {
+   "input": "cream of tartar",
+   "concept": "cream_of_tartar"
+  },
+  {
+   "input": "buckwheat flour",
+   "concept": "buckwheat"
+  },
+  {
+   "input": "lupin flour",
+   "concept": "lupin_flour"
+  }
+ ]
+}

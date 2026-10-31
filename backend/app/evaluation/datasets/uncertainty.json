@@ -1,0 +1,220 @@
+{
+ "description": "Incomplete, ambiguous or unreliable evidence: the answer must be UNKNOWN, never NOT LISTED.",
+ "version": 1,
+ "cases": [
+  {
+   "id": "U01",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt",
+     "complete": false
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "incomplete list"
+  },
+  {
+   "id": "U02",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, salt",
+     "confidence": 0.3
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "unreadable photo text"
+  },
+  {
+   "id": "U03",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "zzqx paste"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "unidentified ingredient"
+  },
+  {
+   "id": "U04",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "spices",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "mustard": "UNKNOWN",
+    "celery": "UNKNOWN"
+   },
+   "note": "non-specific term"
+  },
+  {
+   "id": "U05",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt"
+     ],
+     "age_days": 500
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "stale verified record"
+  },
+  {
+   "id": "U06",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_unverified",
+     "items": [
+      "rice",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "unverified restaurant record"
+  },
+  {
+   "id": "U07",
+   "tags": [],
+   "sources": [
+    {
+     "type": "public_recipe",
+     "items": [
+      "rice",
+      "salt"
+     ],
+     "complete": false
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "public recipe only"
+  },
+  {
+   "id": "U08",
+   "tags": [],
+   "sources": [],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "no information"
+  },
+  {
+   "id": "U09",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt. Dairy free."
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "free-from claims cannot be verified (rule R4)"
+  },
+  {
+   "id": "U10",
+   "tags": [],
+   "sources": [
+    {
+     "type": "product_database",
+     "text": "rice, salt"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "context": {
+    "identity_confidence": 0.5
+   }
+  },
+  {
+   "id": "U11",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, natural flavouring, salt"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "flavouring is non-specific"
+  },
+  {
+   "id": "U12",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, cocoa mas, salt"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "unaccepted guess stays unresolved"
+  },
+  {
+   "id": "U13",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, lecithin, salt"
+    }
+   ],
+   "expect": {
+    "soy": "UNKNOWN",
+    "eggs": "UNKNOWN"
+   },
+   "note": "possible sources"
+  },
+  {
+   "id": "U14",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, seasoning"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   }
+  }
+ ]
+}

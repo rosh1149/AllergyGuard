@@ -172,6 +172,11 @@ def regression_failures(db: Session) -> list[str]:
         got = {t.allergen_code for t in res.terms} | {p.allergen_code for _, p in res.paths if p.certainty == "definite"}
         if got != expected:
             failures.append(f"'{text}': expected {sorted(expected) or 'no allergen'}, got {sorted(got) or 'no allergen'}")
+    # The safety part of the evaluation benchmark (Step F): no lost allergen links, no unsafe absence.
+    from app.evaluation.gate import critical_failures
+    from app.evaluation.runner import evaluate
+
+    failures += [f"Safety benchmark: {f}" for f in critical_failures(evaluate(kb))]
     return failures
 
 

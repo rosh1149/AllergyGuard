@@ -1,0 +1,185 @@
+{
+ "description": "Written ingredient text -> normalized text (head item). OCR flag set for photo text.",
+ "version": 1,
+ "cases": [
+  {
+   "input": "Sugar",
+   "expected": "sugar"
+  },
+  {
+   "input": "  Salt. ",
+   "expected": "salt"
+  },
+  {
+   "input": "Hazelnuts 13%",
+   "expected": "hazelnuts"
+  },
+  {
+   "input": "E 322",
+   "expected": "e322"
+  },
+  {
+   "input": "e-621",
+   "expected": "e621"
+  },
+  {
+   "input": "Whey Powder (Milk)",
+   "expected": "whey powder"
+  },
+  {
+   "input": "mayonaise",
+   "expected": "mayonnaise"
+  },
+  {
+   "input": "Mozarella",
+   "expected": "mozzarella"
+  },
+  {
+   "input": "sesami seeds",
+   "expected": "sesame seeds"
+  },
+  {
+   "input": "worcester sauce",
+   "expected": "worcestershire sauce"
+  },
+  {
+   "input": "caseine",
+   "expected": "casein"
+  },
+  {
+   "input": "yoghourt",
+   "expected": "yogurt"
+  },
+  {
+   "input": "flavorings",
+   "expected": "flavourings"
+  },
+  {
+   "input": "hydrolyzed vegetable protein",
+   "expected": "hydrolysed vegetable protein"
+  },
+  {
+   "input": "tumeric",
+   "expected": "turmeric"
+  },
+  {
+   "input": "hazlenuts",
+   "expected": "hazelnuts"
+  },
+  {
+   "input": "soyabean",
+   "expected": "soya bean"
+  },
+  {
+   "input": "lecitin",
+   "expected": "lecithin"
+  },
+  {
+   "input": "glutten",
+   "expected": "gluten"
+  },
+  {
+   "input": "panner",
+   "expected": "paneer"
+  },
+  {
+   "input": "hazelnutt",
+   "expected": "hazelnut"
+  },
+  {
+   "input": "almonde",
+   "expected": "almond"
+  },
+  {
+   "input": "penaut oil",
+   "expected": "peanut oil"
+  },
+  {
+   "input": "worcestershir sauce",
+   "expected": "worcestershire sauce"
+  },
+  {
+   "input": "cocoa mas",
+   "expected": "cocoa mas"
+  },
+  {
+   "input": "sunflwer oil",
+   "expected": "sunflwer oil"
+  },
+  {
+   "input": "zzqx paste",
+   "expected": "zzqx paste"
+  },
+  {
+   "input": "Ingredients: wheat flour",
+   "expected": "wheat flour"
+  },
+  {
+   "input": "Milk Chocolate (20%)",
+   "expected": "milk chocolate"
+  },
+  {
+   "input": "garbanzo beans",
+   "expected": "chickpea beans"
+  },
+  {
+   "input": "sulfites",
+   "expected": "sulphites"
+  },
+  {
+   "input": "color",
+   "expected": "colour"
+  },
+  {
+   "input": "Skimmed Milk Powder",
+   "expected": "skimmed milk powder"
+  },
+  {
+   "input": "rice",
+   "expected": "rice"
+  },
+  {
+   "input": "water",
+   "expected": "water"
+  },
+  {
+   "input": "caseln",
+   "expected": "caseln"
+  },
+  {
+   "input": "caseln",
+   "expected": "casein",
+   "ocr": true
+  },
+  {
+   "input": "rnilk",
+   "expected": "milk",
+   "ocr": true
+  },
+  {
+   "input": "ca5ein",
+   "expected": "casein",
+   "ocr": true
+  },
+  {
+   "input": "aimond",
+   "expected": "almond",
+   "ocr": true
+  },
+  {
+   "input": "whey powcler",
+   "expected": "whey powder",
+   "ocr": true
+  },
+  {
+   "input": "pcanuts",
+   "expected": "peanuts",
+   "ocr": true
+  },
+  {
+   "input": "pean0ts",
+   "expected": "peanuts",
+   "ocr": true
+  }
+ ]
+}

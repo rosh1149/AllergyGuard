@@ -144,7 +144,8 @@ def test_ingredient_statuses(kb):
     assert st["sodium caseinate"].status == "allergen_linked" and st["sodium caseinate"].allergens == ["milk"]
     assert st["sodium caseinate"].foodon_id == "FOODON:03317011"
     assert st["lecithin"].status == "possible_allergen" and set(st["lecithin"].possible_allergens) == {"soy", "eggs"}
-    assert st["spices"].status == "ambiguous_source"
+    # Step F: general terms may hide the allergens most often found in them.
+    assert st["spices"].status == "possible_allergen" and set(st["spices"].possible_allergens) == {"mustard", "celery"}
     assert st["konjac"].status == "unresolved"
     assert any("Not recognised by the ingredient knowledge base" in lim and "konjac" in lim for lim in r.limitations)
     assert r.knowledge_version == 1

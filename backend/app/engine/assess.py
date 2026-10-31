@@ -31,6 +31,7 @@ from app.engine.knowledge import KnowledgeBase, custom_match
 from app.engine.rules import rules_for
 from app.engine.normalize import NormalizedIngredient, normalize_ingredients
 from app.engine.text import (
+    is_nonspecific,
     free_from_claims,
     normalize,
     split_precautions,
@@ -227,7 +228,8 @@ def _collect(
                 elif via:
                     ev[key].append(_ref(p, presence_kind, shown, via.alias, concept=via.slug,
                                         path=f"{kb.concepts[via.slug].name}, made from or containing {term}", n=n))
-            if res.status == "ambiguous_source" and n.role != "compound" and item not in nonspecific:
+            general = res.status == "ambiguous_source" or (res.status == "possible_allergen" and is_nonspecific(item))
+            if general and n.role != "compound" and item not in nonspecific:
                 nonspecific.append(item)
 
         for code in p.src.declared_allergens or []:

@@ -1,0 +1,317 @@
+{
+ "description": "Multi-source scenarios: expected outcome per allergen and the conflicts that must be detected.",
+ "version": 1,
+ "cases": [
+  {
+   "id": "F01",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "sesame": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "agreeing complete sources"
+  },
+  {
+   "id": "F02",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, butter, salt"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, butter, salt",
+     "declared": [
+      "milk"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "F03",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar, milk powder"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   },
+   "conflicts": [
+    "allergen_disagreement"
+   ],
+   "note": "one source lists milk: the cautious finding wins"
+  },
+  {
+   "id": "F04",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, salt, sugar, vinegar"
+    },
+    {
+     "type": "product_database",
+     "text": "potato, sunflower oil, paprika, onion powder"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "conflicts": [
+    "ingredient_list_mismatch"
+   ],
+   "context": {
+    "identity_confidence": 0.9
+   }
+  },
+  {
+   "id": "F05",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, butter, salt"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, butter, salt",
+     "declared": []
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   },
+   "conflicts": [
+    "declaration_mismatch"
+   ],
+   "note": "the database's allergen list omits milk its own ingredients show"
+  },
+  {
+   "id": "F06",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "potato",
+      "salt"
+     ],
+     "cross_contact": [
+      {
+       "allergen": "peanuts",
+       "kind": "shared_fryer"
+      }
+     ],
+     "cross_contact_assessed": true
+    },
+    {
+     "type": "manufacturer",
+     "items": [
+      "potato",
+      "salt"
+     ],
+     "cross_contact_assessed": true
+    }
+   ],
+   "expect": {
+    "peanuts": "POSSIBLE_CROSS_CONTACT"
+   },
+   "conflicts": [
+    "cross_contact_disagreement"
+   ]
+  },
+  {
+   "id": "F07",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "dal",
+      "salt"
+     ]
+    },
+    {
+     "type": "customer_suggestion",
+     "complete": false,
+     "declared": [
+      "milk"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "unverified customer report vs verified record: candidate only, absence not claimed"
+  },
+  {
+   "id": "F08",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt",
+      "turmeric"
+     ]
+    },
+    {
+     "type": "public_recipe",
+     "items": [
+      "rice",
+      "ghee",
+      "salt"
+     ],
+     "complete": false
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "public recipe suggests ghee: not this restaurant's recipe, but blocks absence"
+  },
+  {
+   "id": "F09",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt",
+     "may_contain": "May contain traces of sesame."
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt"
+    }
+   ],
+   "expect": {
+    "sesame": "POSSIBLE_CROSS_CONTACT",
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "F10",
+   "tags": [],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "paneer",
+      "tomato",
+      "salt"
+     ]
+    },
+    {
+     "type": "restaurant_unverified",
+     "items": [
+      "tomato",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   },
+   "conflicts": [
+    "allergen_disagreement"
+   ]
+  },
+  {
+   "id": "F11",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar",
+     "age_days": 5000,
+     "max_age_days": 1095
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "stale database entry is ignored for absence; the fresh label suffices"
+  },
+  {
+   "id": "F12",
+   "tags": [],
+   "sources": [
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "context": {
+    "identity_confidence": 0.4
+   },
+   "note": "database entry for a possibly different product cannot establish absence"
+  },
+  {
+   "id": "F13",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "wheat flour, sugar, salt"
+    },
+    {
+     "type": "product_database",
+     "text": "wheat flour, sugar, salt"
+    }
+   ],
+   "expect": {
+    "gluten": "PRESENT",
+    "wheat": "PRESENT"
+   }
+  },
+  {
+   "id": "F14",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar, lecithin"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar, lecithin"
+    }
+   ],
+   "expect": {
+    "soy": "UNKNOWN",
+    "eggs": "UNKNOWN"
+   },
+   "note": "lecithin's source is not stated: possible soy or egg"
+  }
+ ]
+}

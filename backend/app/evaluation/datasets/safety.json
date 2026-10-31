@@ -1,0 +1,1125 @@
+{
+ "description": "Curated end-to-end allergen dataset: positives and negatives across direct, derived, compound, cross-contact, OCR, conflicting-source and identification cases, plus regressions.",
+ "version": 1,
+ "cases": [
+  {
+   "id": "S001",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "wheat flour, sugar, butter, salt"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT",
+    "gluten": "PRESENT",
+    "eggs": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S002",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, peanuts, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT",
+    "tree_nuts": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S003",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "sugar, almonds, cocoa butter"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT",
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "peanuts": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S004",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "prawns, rice, garlic"
+    }
+   ],
+   "expect": {
+    "crustaceans": "PRESENT",
+    "fish": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "molluscs": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S005",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "tahini, chickpeas, lemon, garlic"
+    }
+   ],
+   "expect": {
+    "sesame": "PRESENT"
+   }
+  },
+  {
+   "id": "S006",
+   "tags": [
+    "direct",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "paneer",
+      "tomato",
+      "cream",
+      "spices"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S007",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "egg, sugar, flour"
+    }
+   ],
+   "expect": {
+    "eggs": "PRESENT"
+   }
+  },
+  {
+   "id": "S008",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "salmon, salt, dill"
+    }
+   ],
+   "expect": {
+    "fish": "PRESENT"
+   }
+  },
+  {
+   "id": "S009",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "mustard seeds, vinegar, salt"
+    }
+   ],
+   "expect": {
+    "mustard": "PRESENT"
+   }
+  },
+  {
+   "id": "S010",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "celery, carrot, onion, water"
+    }
+   ],
+   "expect": {
+    "celery": "PRESENT"
+   }
+  },
+  {
+   "id": "S011",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "squid, rice, garlic"
+    }
+   ],
+   "expect": {
+    "molluscs": "PRESENT"
+   }
+  },
+  {
+   "id": "S012",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "lupin flour, rice flour"
+    }
+   ],
+   "expect": {
+    "lupin": "PRESENT"
+   }
+  },
+  {
+   "id": "S013",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "grapes, sulphur dioxide"
+    }
+   ],
+   "expect": {
+    "sulphites": "PRESENT"
+   }
+  },
+  {
+   "id": "S014",
+   "tags": [
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "soybeans, water, salt"
+    }
+   ],
+   "expect": {
+    "soy": "PRESENT"
+   }
+  },
+  {
+   "id": "S020",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, sodium caseinate, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S021",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "sugar, whey powder, cocoa powder"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S022",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "cocoa powder, sugar, salt"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "cocoa alone is not milk"
+  },
+  {
+   "id": "S023",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "sugar, almond flour, egg white"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT",
+    "eggs": "PRESENT"
+   }
+  },
+  {
+   "id": "S024",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, soy lecithin, sugar"
+    }
+   ],
+   "expect": {
+    "soy": "PRESENT"
+   }
+  },
+  {
+   "id": "S025",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "noodles, fish sauce, lime"
+    }
+   ],
+   "expect": {
+    "fish": "PRESENT"
+   }
+  },
+  {
+   "id": "S026",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "semolina, water, salt"
+    }
+   ],
+   "expect": {
+    "gluten": "PRESENT",
+    "wheat": "PRESENT"
+   }
+  },
+  {
+   "id": "S027",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "ghee, rice, cumin"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S028",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "marzipan, sugar"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S029",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "chicken, satay sauce, rice"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S030",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "beef, worcestershire sauce, salt"
+    }
+   ],
+   "expect": {
+    "fish": "PRESENT"
+   }
+  },
+  {
+   "id": "S031",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, coconut milk, curry leaves, salt"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN",
+    "tree_nuts": "UNKNOWN"
+   },
+   "note": "curry leaves are not in the knowledge base, so absence is not claimed"
+  },
+  {
+   "id": "S032",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, coconut milk, salt"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "tree_nuts": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S033",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "water chestnut, nutmeg, rice"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S034",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "eggplant, tomato, salt"
+    }
+   ],
+   "expect": {
+    "eggs": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S035",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, oyster mushroom, salt"
+    }
+   ],
+   "expect": {
+    "molluscs": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S036",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "beef, cream of tartar, salt"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S037",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "barley malt extract, sugar"
+    }
+   ],
+   "expect": {
+    "gluten": "PRESENT"
+   }
+  },
+  {
+   "id": "S038",
+   "tags": [
+    "derived",
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, arachis oil, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S040",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "chocolate (sugar, cocoa mass, milk powder), salt"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S041",
+   "tags": [
+    "compound",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "emulsifier: lecithins (soya), sugar"
+    }
+   ],
+   "expect": {
+    "soy": "PRESENT",
+    "eggs": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S042",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "filling (sugar, hazelnuts, skimmed milk powder), wheat flour"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT",
+    "milk": "PRESENT",
+    "gluten": "PRESENT"
+   }
+  },
+  {
+   "id": "S043",
+   "tags": [
+    "compound",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "vegetable oil (sunflower, rapeseed), salt, potato"
+    }
+   ],
+   "expect": {
+    "peanuts": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "soy": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S044",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "vegetable oil (peanut), salt, potato"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S045",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "biscuit [wheat flour, butter (milk)], sugar"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT",
+    "gluten": "PRESENT"
+   }
+  },
+  {
+   "id": "S050",
+   "tags": [
+    "cross_contact"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt",
+     "may_contain": "May contain traces of peanuts."
+    }
+   ],
+   "expect": {
+    "peanuts": "POSSIBLE_CROSS_CONTACT"
+   }
+  },
+  {
+   "id": "S051",
+   "tags": [
+    "cross_contact"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "oats, sugar. Made in a factory that also handles nuts."
+    }
+   ],
+   "expect": {
+    "tree_nuts": "POSSIBLE_CROSS_CONTACT"
+   }
+  },
+  {
+   "id": "S052",
+   "tags": [
+    "cross_contact",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "potato",
+      "salt"
+     ],
+     "cross_contact": [
+      {
+       "allergen": "fish",
+       "kind": "shared_fryer",
+       "level": "known"
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "fish": "POSSIBLE_CROSS_CONTACT"
+   }
+  },
+  {
+   "id": "S053",
+   "tags": [
+    "cross_contact"
+   ],
+   "sources": [
+    {
+     "type": "product_database",
+     "text": "rice, salt",
+     "cross_contact": [
+      {
+       "allergen": "sesame",
+       "kind": "precautionary_label"
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "sesame": "POSSIBLE_CROSS_CONTACT"
+   }
+  },
+  {
+   "id": "S054",
+   "tags": [
+    "cross_contact",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt"
+     ]
+    },
+    {
+     "type": "customer_suggestion",
+     "complete": false,
+     "cross_contact": [
+      {
+       "allergen": "peanuts"
+      }
+     ]
+    }
+   ],
+   "expect": {
+    "peanuts": "POSSIBLE_CROSS_CONTACT"
+   }
+  },
+  {
+   "id": "S060",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, caseln, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S061",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "sugar, aimonds, salt"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S062",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, pcanuts, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S066",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, whey powcler, salt"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S067",
+   "tags": [
+    "regression",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "spices",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "mustard": "UNKNOWN",
+    "celery": "UNKNOWN",
+    "peanuts": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "general terms may hide mustard or celery (found by this benchmark)"
+  },
+  {
+   "id": "S068",
+   "tags": [
+    "compound",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "spices (cumin, coriander)",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "mustard": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "celery": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   }
+  },
+  {
+   "id": "S063",
+   "tags": [
+    "ocr",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, sugar, salt",
+     "confidence": 0.4
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   }
+  },
+  {
+   "id": "S064",
+   "tags": [
+    "ocr",
+    "fuzzy"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, hazelnutt, salt"
+    }
+   ],
+   "expect": {
+    "tree_nuts": "PRESENT"
+   }
+  },
+  {
+   "id": "S065",
+   "tags": [
+    "ocr",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, sunflwer oil, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "UNKNOWN"
+   },
+   "note": "unresolved text blocks absence"
+  },
+  {
+   "id": "S070",
+   "tags": [
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar, milk powder"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   }
+  },
+  {
+   "id": "S071",
+   "tags": [
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "potato, paprika, onion, sunflower oil"
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   }
+  },
+  {
+   "id": "S072",
+   "tags": [
+    "conflict",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt"
+     ]
+    },
+    {
+     "type": "public_recipe",
+     "items": [
+      "rice",
+      "cashew paste",
+      "salt"
+     ],
+     "complete": false
+    }
+   ],
+   "expect": {
+    "tree_nuts": "UNKNOWN"
+   }
+  },
+  {
+   "id": "S073",
+   "tags": [
+    "conflict",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt"
+     ]
+    },
+    {
+     "type": "restaurant_unverified",
+     "items": [
+      "rice",
+      "salt",
+      "egg"
+     ]
+    }
+   ],
+   "expect": {
+    "eggs": "PRESENT"
+   }
+  },
+  {
+   "id": "S080",
+   "tags": [
+    "identification",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "salt"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "context": {
+    "identity_confidence": 0.5
+   }
+  },
+  {
+   "id": "S081",
+   "tags": [
+    "identification"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "butter",
+      "rice"
+     ]
+    }
+   ],
+   "expect": {
+    "milk": "UNKNOWN"
+   },
+   "note": "possibly another dish: milk is only a candidate",
+   "context": {
+    "identity_confidence": 0.5
+   }
+  },
+  {
+   "id": "S090",
+   "tags": [
+    "regression",
+    "fuzzy"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, penaut oil, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "PRESENT"
+   },
+   "note": "misspelling hidden behind 'oil'"
+  },
+  {
+   "id": "S091",
+   "tags": [
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, sunflwer oil, salt"
+    }
+   ],
+   "expect": {
+    "peanuts": "UNKNOWN"
+   },
+   "note": "unresolved text, not 'just oil'"
+  },
+  {
+   "id": "S092",
+   "tags": [
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "emulsifier: lecithins (soya)"
+    }
+   ],
+   "expect": {
+    "eggs": "NOT_LISTED_IN_VERIFIED_RECORDS",
+    "soy": "PRESENT"
+   },
+   "note": "source qualifier"
+  },
+  {
+   "id": "S093",
+   "tags": [
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "beef, cream of tartar"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "look-alike exclusion bypassed by concept match"
+  },
+  {
+   "id": "S094",
+   "tags": [
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "wheat flour, water"
+    }
+   ],
+   "expect": {
+    "gluten": "PRESENT",
+    "wheat": "PRESENT"
+   },
+   "note": "wheat implies gluten"
+  },
+  {
+   "id": "S095",
+   "tags": [
+    "regression"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "Ingredients: chocolate (sugar, milk powder)"
+    }
+   ],
+   "expect": {
+    "milk": "PRESENT"
+   },
+   "note": "'Ingredients:' prefix"
+  }
+ ]
+}

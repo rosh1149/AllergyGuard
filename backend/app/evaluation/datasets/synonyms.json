@@ -1,0 +1,202 @@
+{
+ "description": "Regional and alternative names -> canonical concept (null = must not map to any concept).",
+ "version": 1,
+ "cases": [
+  {
+   "input": "soya",
+   "concept": "soybean"
+  },
+  {
+   "input": "soy bean",
+   "concept": "soybean"
+  },
+  {
+   "input": "groundnut",
+   "concept": "peanut"
+  },
+  {
+   "input": "monkey nuts",
+   "concept": "peanut"
+  },
+  {
+   "input": "arachis oil",
+   "concept": "peanut_oil"
+  },
+  {
+   "input": "groundnut oil",
+   "concept": "peanut_oil"
+  },
+  {
+   "input": "maida",
+   "concept": "wheat_flour"
+  },
+  {
+   "input": "atta",
+   "concept": "wheat_flour"
+  },
+  {
+   "input": "sooji",
+   "concept": "semolina"
+  },
+  {
+   "input": "rava",
+   "concept": "semolina"
+  },
+  {
+   "input": "curd",
+   "concept": "yogurt"
+  },
+  {
+   "input": "dahi",
+   "concept": "yogurt"
+  },
+  {
+   "input": "malai",
+   "concept": "cream"
+  },
+  {
+   "input": "khoya",
+   "concept": "khoa"
+  },
+  {
+   "input": "mawa",
+   "concept": "khoa"
+  },
+  {
+   "input": "clarified butter",
+   "concept": "ghee"
+  },
+  {
+   "input": "besan",
+   "concept": "chickpea"
+  },
+  {
+   "input": "gram flour",
+   "concept": "chickpea"
+  },
+  {
+   "input": "brinjal",
+   "concept": "eggplant"
+  },
+  {
+   "input": "aubergine",
+   "concept": "eggplant"
+  },
+  {
+   "input": "cilantro",
+   "concept": "coriander"
+  },
+  {
+   "input": "filbert",
+   "concept": "hazelnut"
+  },
+  {
+   "input": "kaju",
+   "concept": "cashew"
+  },
+  {
+   "input": "til",
+   "concept": "sesame"
+  },
+  {
+   "input": "gingelly",
+   "concept": "sesame"
+  },
+  {
+   "input": "sarson",
+   "concept": "mustard"
+  },
+  {
+   "input": "jhinga",
+   "concept": "shrimp"
+  },
+  {
+   "input": "prawns",
+   "concept": "shrimp"
+  },
+  {
+   "input": "cornflour",
+   "concept": "maize"
+  },
+  {
+   "input": "sweetcorn",
+   "concept": "maize"
+  },
+  {
+   "input": "e322",
+   "concept": "lecithin"
+  },
+  {
+   "input": "e220",
+   "concept": "sulphite"
+  },
+  {
+   "input": "sulfur dioxide",
+   "concept": "sulphite"
+  },
+  {
+   "input": "celeriac",
+   "concept": "celery"
+  },
+  {
+   "input": "garbanzo",
+   "concept": "chickpea"
+  },
+  {
+   "input": "cottage cheese",
+   "concept": "paneer"
+  },
+  {
+   "input": "kamut",
+   "concept": "khorasan_wheat"
+  },
+  {
+   "input": "skim milk powder",
+   "concept": "milk_powder"
+  },
+  {
+   "input": "dried milk",
+   "concept": "milk_powder"
+  },
+  {
+   "input": "milk solids",
+   "concept": "milk_powder"
+  },
+  {
+   "input": "egg albumen",
+   "concept": "egg_white"
+  },
+  {
+   "input": "tahina",
+   "concept": "tahini"
+  },
+  {
+   "input": "mixed nuts",
+   "concept": "tree_nut"
+  },
+  {
+   "input": "glucose syrup",
+   "concept": "golden_syrup"
+  },
+  {
+   "input": "natural flavour",
+   "concept": "flavouring"
+  },
+  {
+   "input": "zzqx",
+   "concept": null
+  },
+  {
+   "input": "flower",
+   "concept": null
+  },
+  {
+   "input": "hazel",
+   "concept": null
+  },
+  {
+   "input": "butterscotch",
+   "concept": null
+  }
+ ]
+}

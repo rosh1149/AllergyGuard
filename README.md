@@ -308,6 +308,24 @@ photo-job usage.
 - customer data export and account deletion (`GET /api/me/export`, `DELETE /api/me`)
 - a platform audit log for administrator actions
 
+## Evaluation benchmark and release gate (Step F)
+
+`backend/app/evaluation/` measures each layer separately:
+- normalization, OCR correction, synonyms and ontology mapping
+- semantic reasoning and compound ingredients
+- evidence fusion, provenance and uncertainty
+- end-to-end safety, using a curated allergen dataset with positive, negative and regression cases
+
+`release_criteria.json` sets the safety criteria (zero allergen false negatives, zero unsafe
+absences, full traceability) and the quality thresholds. `baseline.json` blocks regressions. The gate
+runs in CI (`.github/workflows/ci.yml`, job `safety-gate`) and before any approved knowledge change
+is published. See [docs/EVALUATION.md](docs/EVALUATION.md) for the metrics and what the first run
+found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest report.
+
+```bash
+cd backend && python -m app.evaluation
+```
+
 ## Packaged-food pipeline (Part 3)
 
 `POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,

@@ -1,0 +1,256 @@
+{
+ "description": "Compound ingredients: sub-ingredients, class names and headers -> (role, text, parent).",
+ "version": 1,
+ "cases": [
+  {
+   "input": "chocolate (sugar, cocoa mass, milk powder), salt",
+   "items": [
+    [
+     "compound",
+     "chocolate",
+     null
+    ],
+    [
+     "component",
+     "sugar",
+     "chocolate"
+    ],
+    [
+     "component",
+     "cocoa mass",
+     "chocolate"
+    ],
+    [
+     "component",
+     "milk powder",
+     "chocolate"
+    ],
+    [
+     "ingredient",
+     "salt",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "emulsifier: lecithins (soya)",
+   "items": [
+    [
+     "class_label",
+     "emulsifier",
+     null
+    ],
+    [
+     "compound",
+     "lecithins",
+     "emulsifier"
+    ],
+    [
+     "component",
+     "soya",
+     "lecithins"
+    ]
+   ]
+  },
+  {
+   "input": "contains 2% or less of: salt, yeast",
+   "items": [
+    [
+     "ingredient",
+     "salt",
+     null
+    ],
+    [
+     "ingredient",
+     "yeast",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "thickener (guar gum), raising agent (sodium bicarbonate)",
+   "items": [
+    [
+     "class_label",
+     "thickener",
+     null
+    ],
+    [
+     "component",
+     "guar gum",
+     "thickener"
+    ],
+    [
+     "class_label",
+     "raising agent",
+     null
+    ],
+    [
+     "component",
+     "sodium bicarbonate",
+     "raising agent"
+    ]
+   ]
+  },
+  {
+   "input": "filling (sugar, hazelnuts (14%), skimmed milk powder), wheat flour",
+   "items": [
+    [
+     "compound",
+     "filling",
+     null
+    ],
+    [
+     "component",
+     "sugar",
+     "filling"
+    ],
+    [
+     "component",
+     "hazelnuts",
+     "filling"
+    ],
+    [
+     "component",
+     "skimmed milk powder",
+     "filling"
+    ],
+    [
+     "ingredient",
+     "wheat flour",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "vegetable oil (sunflower, rapeseed)",
+   "items": [
+    [
+     "compound",
+     "vegetable oil",
+     null
+    ],
+    [
+     "component",
+     "sunflower",
+     "vegetable oil"
+    ],
+    [
+     "component",
+     "rapeseed",
+     "vegetable oil"
+    ]
+   ]
+  },
+  {
+   "input": "Ingredients: rice, water, salt",
+   "items": [
+    [
+     "ingredient",
+     "rice",
+     null
+    ],
+    [
+     "ingredient",
+     "water",
+     null
+    ],
+    [
+     "ingredient",
+     "salt",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "biscuit [wheat flour, butter (milk)], sugar",
+   "items": [
+    [
+     "compound",
+     "biscuit",
+     null
+    ],
+    [
+     "component",
+     "wheat flour",
+     "biscuit"
+    ],
+    [
+     "compound",
+     "butter",
+     "biscuit"
+    ],
+    [
+     "component",
+     "milk",
+     "butter"
+    ],
+    [
+     "ingredient",
+     "sugar",
+     null
+    ]
+   ]
+  },
+  {
+   "input": "pesto (basil, pine nuts, parmesan (milk), olive oil)",
+   "items": [
+    [
+     "compound",
+     "pesto",
+     null
+    ],
+    [
+     "component",
+     "basil",
+     "pesto"
+    ],
+    [
+     "component",
+     "pine nuts",
+     "pesto"
+    ],
+    [
+     "compound",
+     "parmesan",
+     "pesto"
+    ],
+    [
+     "component",
+     "milk",
+     "parmesan"
+    ],
+    [
+     "component",
+     "olive oil",
+     "pesto"
+    ]
+   ]
+  },
+  {
+   "input": "flavour enhancer (e621); acidity regulator: citric acid",
+   "items": [
+    [
+     "class_label",
+     "flavour enhancer",
+     null
+    ],
+    [
+     "component",
+     "e621",
+     "flavour enhancer"
+    ],
+    [
+     "class_label",
+     "acidity regulator",
+     null
+    ],
+    [
+     "component",
+     "citric acid",
+     "acidity regulator"
+    ]
+   ]
+  }
+ ]
+}

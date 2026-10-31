@@ -268,6 +268,10 @@ def _resolve(kb: KnowledgeBase, text: str) -> ItemResolution:
     return kb.resolve_item(text, nonspecific=is_nonspecific(text))
 
 
+def _allergens(res: ItemResolution) -> set[str]:
+    return {t.allergen_code for t in res.terms} | {p.allergen_code for _, p in res.paths}
+
+
 def normalize_item(kb: KnowledgeBase, original: str, role: str, parent: str | None, ocr: bool) -> NormalizedIngredient:
     text = clean(original)
     if role == "class_label":
@@ -277,6 +281,15 @@ def normalize_item(kb: KnowledgeBase, original: str, role: str, parent: str | No
     corrections = [f"'{text}' normalized to '{spelled}' (spelling)"] if spelled != text else []
     res = _resolve(kb, spelled)
     if res.status != "unresolved":
+        if ocr:
+            # Unknown words next to a recognised one ("whey powcler"): correct them if that keeps every
+            # allergen already found (a correction may add findings, never remove them).
+            fixed, notes = ocr_correct(kb, spelled)
+            if fixed != spelled:
+                r2 = _resolve(kb, apply_spelling(fixed))
+                if r2.status != "unresolved" and _allergens(res) <= _allergens(r2):
+                    return NormalizedIngredient(original, apply_spelling(fixed), role, parent, "ocr_correction",
+                                                CONFIDENCE["ocr_correction"], r2, corrections + notes)
         return NormalizedIngredient(original, spelled, role, parent, method, CONFIDENCE[method], res, corrections)
 
     attempts: list[tuple[str, str, list[str], float]] = []

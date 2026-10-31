@@ -1,0 +1,29 @@
+{
+ "description": "Release criteria for changes to the allergen engine, knowledge base and fusion rules. 'critical' criteria are safety criteria and always block. 'quality' criteria block too. Every gated metric must also not fall below baseline.json by more than the tolerance, and no dataset may shrink.",
+ "baseline_tolerance": 0.005,
+ "critical": {
+  "safety.false_negative_count": {"max": 0, "why": "An allergen that may be present must never be reported as not listed."},
+  "evidence_fusion.unsafe_absence_count": {"max": 0, "why": "Conflicting or partial sources must never produce NOT LISTED for a present allergen."},
+  "uncertainty.unsafe_absence_count": {"max": 0, "why": "Incomplete, unreadable, stale or ambiguous evidence must never produce NOT LISTED."},
+  "uncertainty.handling_accuracy": {"min": 1.0, "why": "Every uncertainty scenario must be handled as specified."},
+  "semantic_reasoning.missed_allergen_count": {"max": 0, "why": "No benchmark ingredient may lose its allergen link."},
+  "provenance.traceability_coverage": {"min": 1.0, "why": "Every finding must name its source, ingredient, rule and relationship path."}
+ },
+ "quality": {
+  "normalization.exact_match_accuracy": {"min": 0.95},
+  "normalization.precision": {"min": 0.95},
+  "normalization.recall": {"min": 0.9},
+  "ocr_correction.correction_accuracy": {"min": 0.85},
+  "ocr_correction.false_correction_rate": {"max": 0.02},
+  "synonyms.precision": {"min": 0.98},
+  "synonyms.recall": {"min": 0.95},
+  "ontology_mapping.precision": {"min": 0.97},
+  "ontology_mapping.recall": {"min": 0.95},
+  "semantic_reasoning.relationship_accuracy": {"min": 0.97},
+  "compound_ingredients.extraction_accuracy": {"min": 0.9},
+  "evidence_fusion.agreement_accuracy": {"min": 0.95},
+  "evidence_fusion.conflict_resolution_accuracy": {"min": 0.95},
+  "safety.outcome_accuracy": {"min": 0.95},
+  "safety.false_positive_rate": {"max": 0.05}
+ }
+}

@@ -1,0 +1,539 @@
+{
+ "description": "Ingredient -> allergens it definitely indicates, and allergens it possibly indicates (unstated source). Cocoa, coconut and look-alikes must not be linked to milk or nuts.",
+ "version": 1,
+ "cases": [
+  {
+   "input": "casein",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "sodium caseinate",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "whey powder",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "lactose",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "ghee",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "paneer",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "khoa",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "milk chocolate",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "butter",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "cocoa powder",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "cocoa butter",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "coconut milk",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "dark chocolate",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "cream of tartar",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "almond flour",
+   "definite": [
+    "tree_nuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "marzipan",
+   "definite": [
+    "tree_nuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "praline",
+   "definite": [
+    "tree_nuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "gianduja",
+   "definite": [
+    "tree_nuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "nutmeg",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "water chestnut",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "coconut",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "peanut butter",
+   "definite": [
+    "peanuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "arachis oil",
+   "definite": [
+    "peanuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "satay sauce",
+   "definite": [
+    "peanuts"
+   ],
+   "possible": []
+  },
+  {
+   "input": "soy lecithin",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "tofu",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "soy sauce",
+   "definite": [
+    "gluten",
+    "soy",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "tamari",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "miso",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "edamame",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "lecithin",
+   "definite": [],
+   "possible": [
+    "eggs",
+    "soy"
+   ]
+  },
+  {
+   "input": "emulsifier: lecithins (soya)",
+   "definite": [
+    "soy"
+   ],
+   "possible": []
+  },
+  {
+   "input": "flour",
+   "definite": [
+    "gluten"
+   ],
+   "possible": [
+    "wheat"
+   ]
+  },
+  {
+   "input": "starch",
+   "definite": [],
+   "possible": [
+    "gluten",
+    "wheat"
+   ]
+  },
+  {
+   "input": "hydrolysed vegetable protein",
+   "definite": [],
+   "possible": [
+    "gluten",
+    "soy",
+    "wheat"
+   ]
+  },
+  {
+   "input": "wheat flour",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "semolina",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "spelt",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "seitan",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "barley malt",
+   "definite": [
+    "gluten"
+   ],
+   "possible": []
+  },
+  {
+   "input": "rye flour",
+   "definite": [
+    "gluten"
+   ],
+   "possible": []
+  },
+  {
+   "input": "couscous",
+   "definite": [
+    "gluten",
+    "wheat"
+   ],
+   "possible": []
+  },
+  {
+   "input": "buckwheat",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "rice flour",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "quinoa",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "maize flour",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "egg white",
+   "definite": [
+    "eggs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "egg yolk",
+   "definite": [
+    "eggs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "mayonnaise",
+   "definite": [
+    "eggs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "meringue",
+   "definite": [
+    "eggs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "lysozyme",
+   "definite": [
+    "eggs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "eggplant",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "tahini",
+   "definite": [
+    "sesame"
+   ],
+   "possible": []
+  },
+  {
+   "input": "sesame oil",
+   "definite": [
+    "sesame"
+   ],
+   "possible": []
+  },
+  {
+   "input": "hummus",
+   "definite": [
+    "sesame"
+   ],
+   "possible": []
+  },
+  {
+   "input": "fish sauce",
+   "definite": [
+    "fish"
+   ],
+   "possible": []
+  },
+  {
+   "input": "anchovy",
+   "definite": [
+    "fish"
+   ],
+   "possible": []
+  },
+  {
+   "input": "worcestershire sauce",
+   "definite": [
+    "fish"
+   ],
+   "possible": []
+  },
+  {
+   "input": "prawns",
+   "definite": [
+    "crustaceans"
+   ],
+   "possible": []
+  },
+  {
+   "input": "shrimp paste",
+   "definite": [
+    "crustaceans"
+   ],
+   "possible": []
+  },
+  {
+   "input": "crab",
+   "definite": [
+    "crustaceans"
+   ],
+   "possible": []
+  },
+  {
+   "input": "oyster sauce",
+   "definite": [
+    "molluscs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "squid",
+   "definite": [
+    "molluscs"
+   ],
+   "possible": []
+  },
+  {
+   "input": "oyster mushroom",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "mustard oil",
+   "definite": [
+    "mustard"
+   ],
+   "possible": []
+  },
+  {
+   "input": "celery salt",
+   "definite": [
+    "celery"
+   ],
+   "possible": []
+  },
+  {
+   "input": "lupin flour",
+   "definite": [
+    "lupin"
+   ],
+   "possible": []
+  },
+  {
+   "input": "sodium metabisulphite",
+   "definite": [
+    "sulphites"
+   ],
+   "possible": []
+  },
+  {
+   "input": "spices",
+   "definite": [],
+   "possible": [
+    "celery",
+    "mustard"
+   ]
+  },
+  {
+   "input": "spices (cumin, coriander)",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "seasoning",
+   "definite": [],
+   "possible": [
+    "celery",
+    "gluten",
+    "milk",
+    "mustard",
+    "soy",
+    "wheat"
+   ]
+  },
+  {
+   "input": "natural flavouring",
+   "definite": [],
+   "possible": [
+    "gluten",
+    "milk",
+    "soy",
+    "wheat"
+   ]
+  },
+  {
+   "input": "flavouring (milk)",
+   "definite": [
+    "milk"
+   ],
+   "possible": []
+  },
+  {
+   "input": "sugar",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "salt",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "vinegar",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "potato",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "sunflower oil",
+   "definite": [],
+   "possible": []
+  },
+  {
+   "input": "palm oil",
+   "definite": [],
+   "possible": []
+  }
+ ]
+}
