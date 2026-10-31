@@ -222,6 +222,24 @@ class FeedbackIn(BaseModel):
     message: str = Field(default="", max_length=2000)
 
 
+class FeedbackImpact(BaseModel):
+    resulting_version_number: int
+    version_is_current: bool
+    changes: VersionChanges | None = None
+    assessments_since: int  # customer checks that used the corrected recipe version
+    assessments_flagging_allergen: int | None = None  # of those, how many reported the allergen
+
+
+class FeedbackEvent(BaseModel):
+    action: str  # submitted | clarification_requested | clarified | confirmed | rejected
+    at: datetime
+    note: str = ""
+
+
+class FeedbackClarificationIn(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+
+
 class FeedbackOut(BaseModel):
     id: int
     restaurant_id: int
@@ -238,17 +256,22 @@ class FeedbackOut(BaseModel):
     decided_at: datetime | None
     decision_note: str
     resulting_version_number: int | None
+    clarification_request: str = ""
+    clarification_response: str = ""
+    clarified_at: datetime | None = None
+    impact: FeedbackImpact | None = None
+    history: list[FeedbackEvent] = Field(default_factory=list)
 
 
 class FeedbackDecisionIn(BaseModel):
-    decision: SuggestionStatus  # confirmed | rejected
+    decision: SuggestionStatus  # confirmed | rejected | clarification_requested (note = the question)
     note: str = Field(default="", max_length=2000)
 
     @field_validator("decision")
     @classmethod
     def _decided(cls, v: SuggestionStatus) -> SuggestionStatus:
         if v == SuggestionStatus.unverified:
-            raise ValueError("Decision must be 'confirmed' or 'rejected'.")
+            raise ValueError("Decision must be 'confirmed', 'rejected' or 'clarification_requested'.")
         return v
 
 

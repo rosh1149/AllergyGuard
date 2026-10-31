@@ -12,14 +12,21 @@ class SuggestionType(str, enum.Enum):
     missing_ingredient = "missing_ingredient"
     incorrect_ingredient = "incorrect_ingredient"
     missing_allergen = "missing_allergen"
+    incorrect_allergen = "incorrect_allergen"  # an allergen is listed that the customer thinks is wrong
     cross_contact = "cross_contact"
+    outdated_recipe = "outdated_recipe"  # the dish has changed and the records no longer match it
     other = "other"
 
 
 class SuggestionStatus(str, enum.Enum):
     unverified = "unverified"  # default; trusted records are unchanged
+    clarification_requested = "clarification_requested"  # staff asked the customer a question
     confirmed = "confirmed"
     rejected = "rejected"
+
+
+# Still awaiting a staff decision (and still shown to customers as unreviewed reports).
+PENDING_STATUSES = (SuggestionStatus.unverified, SuggestionStatus.clarification_requested)
 
 
 class FeedbackSuggestion(TimestampMixin, Base):
@@ -43,6 +50,10 @@ class FeedbackSuggestion(TimestampMixin, Base):
     decided_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     decided_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     decision_note: Mapped[str] = mapped_column(Text, default="")
+    # Clarification round: the staff question and the customer's answer. The original message is never edited.
+    clarification_request: Mapped[str] = mapped_column(Text, default="")
+    clarification_response: Mapped[str] = mapped_column(Text, default="")
+    clarified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     resulting_recipe_version_id: Mapped[int | None] = mapped_column(
         ForeignKey("recipe_versions.id", ondelete="SET NULL")
     )

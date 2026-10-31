@@ -1,8 +1,10 @@
 """Customer ingredient suggestions and the staff verification workflow.
 
 A suggestion is stored as unverified and never changes trusted records by itself. Only an
-authorized staff decision can: confirming creates a new verified recipe version with the change
-applied; rejecting changes nothing. Every decision is written to the audit log.
+authorized staff decision can: confirming creates a new recipe version with the change applied;
+rejecting changes nothing; staff can also ask the customer a question first. Corrections that would
+make a record less cautious (removing an allergen) are never applied automatically. Every step is
+written to the audit log, and the original message is never edited.
 """
 
 from __future__ import annotations
@@ -13,7 +15,10 @@ from sqlalchemy.orm import Session
 
 from app.engine.knowledge import KnowledgeBase
 from app.models import (
+    PENDING_STATUSES,
     Allergen,
+    Assessment,
+    AuditRecord,
     FeedbackSuggestion,
     MenuItem,
     MenuItemStatus,
@@ -21,13 +26,22 @@ from app.models import (
     SuggestionStatus,
     SuggestionType,
     User,
+    VerificationStatus,
 )
 from app.models.common import utcnow
-from app.restaurant.recipes import audit, create_version, current_version, snapshot
-from app.schemas.restaurant import CrossContactIn, FeedbackIn, FeedbackOut, IngredientIn
+from app.restaurant.recipes import audit, create_version, current_version, snapshot, version_changes
+from app.schemas.restaurant import (
+    CrossContactIn,
+    FeedbackEvent,
+    FeedbackImpact,
+    FeedbackIn,
+    FeedbackOut,
+    IngredientIn,
+)
 
 NEEDS_INGREDIENT = {SuggestionType.missing_ingredient, SuggestionType.incorrect_ingredient}
-NEEDS_ALLERGEN = {SuggestionType.missing_allergen, SuggestionType.cross_contact}
+NEEDS_ALLERGEN = {SuggestionType.missing_allergen, SuggestionType.incorrect_allergen, SuggestionType.cross_contact}
+NEEDS_MESSAGE = {SuggestionType.other, SuggestionType.outdated_recipe}
 
 
 def _422(msg: str) -> HTTPException:
@@ -48,7 +62,7 @@ def submit(db: Session, customer: User, data: FeedbackIn) -> FeedbackSuggestion:
             raise _422(f"Unknown allergen code: {data.allergen_code}")
     if data.suggestion_type in NEEDS_ALLERGEN and allergen is None:
         raise _422("Choose the allergen this suggestion is about.")
-    if data.suggestion_type == SuggestionType.other and not data.message.strip():
+    if data.suggestion_type in NEEDS_MESSAGE and not data.message.strip():
         raise _422("Describe the issue in the message.")
 
     duplicate = db.scalar(
@@ -58,7 +72,7 @@ def submit(db: Session, customer: User, data: FeedbackIn) -> FeedbackSuggestion:
             FeedbackSuggestion.suggestion_type == data.suggestion_type,
             FeedbackSuggestion.ingredient_name == ingredient,
             FeedbackSuggestion.allergen_id == (allergen.id if allergen else None),
-            FeedbackSuggestion.status == SuggestionStatus.unverified,
+            FeedbackSuggestion.status.in_(PENDING_STATUSES),
         )
     )
     if duplicate:
@@ -112,23 +126,46 @@ def _apply(kb: KnowledgeBase, s: FeedbackSuggestion, recipe, allergen_code: str 
             return None
         recipe.cross_contacts.append(CrossContactIn(allergen_code=allergen_code, description=s.message[:1000]))
         return f"Added possible cross-contact with {allergen_code}"
-    return None  # "other": reviewed and logged; staff edit the recipe themselves if needed
+    # "incorrect_allergen": removing an allergen makes the record less cautious, so it is never applied
+    # automatically; staff edit the recipe themselves. "other": reviewed and logged only.
+    return None
 
 
 def decide(
     db: Session, kb: KnowledgeBase, restaurant_id: int, actor: User, s: FeedbackSuggestion,
     decision: SuggestionStatus, note: str,
 ) -> FeedbackSuggestion:
-    if s.status != SuggestionStatus.unverified:
+    if s.status not in PENDING_STATUSES:
         raise HTTPException(status.HTTP_409_CONFLICT, f"This suggestion was already {s.status.value}.")
+    if decision == SuggestionStatus.clarification_requested:
+        if s.status == SuggestionStatus.clarification_requested:
+            raise HTTPException(status.HTTP_409_CONFLICT, "A question is already waiting for the customer's answer.")
+        if not note.strip():
+            raise _422("Enter the question for the customer.")
+        s.status = decision
+        s.clarification_request = note.strip()
+        s.clarification_response = ""
+        audit(db, restaurant_id, actor.id, "feedback.clarification_requested", "feedback_suggestion", s.id,
+              {"menu_item_id": s.menu_item_id, "note": note})
+        db.flush()
+        return s
+
     change = None
     if decision == SuggestionStatus.confirmed:
         item = db.get(MenuItem, s.menu_item_id)
-        recipe = snapshot(current_version(item))
-        change = _apply(kb, s, recipe, s.allergen.code if s.allergen else None)
+        cur = current_version(item)
+        recipe = snapshot(cur)
+        if s.suggestion_type == SuggestionType.outdated_recipe:
+            # Staff agree the records no longer match the dish: publish the same recipe as an unverified
+            # version, so it can no longer rule allergens out until staff update and verify it.
+            if cur is not None and cur.verification_status == VerificationStatus.verified:
+                change = "Recipe marked as needing re-verification"
+                recipe.mark_verified = False
+        else:
+            change = _apply(kb, s, recipe, s.allergen.code if s.allergen else None)
+            recipe.mark_verified = True  # an authorized staff member confirmed this change
         if change:
             recipe.change_note = f"Customer suggestion #{s.id} confirmed: {change}" + (f". {note}" if note else "")
-            recipe.mark_verified = True  # an authorized staff member confirmed this change
             version = create_version(db, item, recipe, actor)
             s.resulting_recipe_version_id = version.id
     s.status = decision
@@ -142,6 +179,49 @@ def decide(
     )
     db.flush()
     return s
+
+
+def clarify(db: Session, customer: User, s: FeedbackSuggestion, message: str) -> FeedbackSuggestion:
+    """The customer answers the staff question; the suggestion goes back to the review list."""
+    if s.status != SuggestionStatus.clarification_requested:
+        raise HTTPException(status.HTTP_409_CONFLICT, "No question is waiting for your answer.")
+    if not message.strip():
+        raise _422("Enter your answer.")
+    s.clarification_response = message.strip()
+    s.clarified_at = utcnow()
+    s.status = SuggestionStatus.unverified
+    audit(db, s.restaurant_id, customer.id, "feedback.clarified", "feedback_suggestion", s.id,
+          {"menu_item_id": s.menu_item_id})
+    db.flush()
+    return s
+
+
+def impact(db: Session, s: FeedbackSuggestion) -> FeedbackImpact | None:
+    """What a confirmed correction changed, and how many later assessments used the corrected recipe."""
+    if s.resulting_recipe_version_id is None:
+        return None
+    v = db.get(RecipeVersion, s.resulting_recipe_version_id)
+    if v is None:
+        return None
+    rows = db.execute(select(Assessment.outcomes).where(Assessment.recipe_version_id == v.id)).scalars().all()
+    code = s.allergen.code if s.allergen else None
+    flagged = sum(1 for o in rows if code and o.get(code) in ("PRESENT", "POSSIBLE_CROSS_CONTACT"))
+    return FeedbackImpact(
+        resulting_version_number=v.version_number,
+        version_is_current=v.is_current,
+        changes=version_changes(v),
+        assessments_since=len(rows),
+        assessments_flagging_allergen=flagged if code else None,
+    )
+
+
+def history(db: Session, s: FeedbackSuggestion) -> list[FeedbackEvent]:
+    rows = db.scalars(
+        select(AuditRecord).where(AuditRecord.entity_type == "feedback_suggestion", AuditRecord.entity_id == s.id)
+        .order_by(AuditRecord.created_at, AuditRecord.id)
+    ).all()
+    return [FeedbackEvent(action=r.action.removeprefix("feedback."), at=r.created_at, note=(r.details or {}).get("note") or "")
+            for r in rows]
 
 
 def feedback_out(db: Session, s: FeedbackSuggestion) -> FeedbackOut:
@@ -164,4 +244,9 @@ def feedback_out(db: Session, s: FeedbackSuggestion) -> FeedbackOut:
         decided_at=s.decided_at,
         decision_note=s.decision_note,
         resulting_version_number=rv.version_number if rv else None,
+        clarification_request=s.clarification_request,
+        clarification_response=s.clarification_response,
+        clarified_at=s.clarified_at,
+        impact=impact(db, s),
+        history=history(db, s),
     )

@@ -4,7 +4,8 @@ from pydantic import BaseModel, Field
 from app.api.deps import DB, CurrentCustomer
 from app.engine.service import AssessmentLink, analyze_for_user
 from app.models.common import utcnow
-from app.engine.types import AnalysisContext, AnalysisResult, EvidenceSource, SourceType
+from app.engine.types import AnalysisContext, AnalysisResult
+from app.sources.label import LabelTextAdapter
 
 router = APIRouter(prefix="/analyze", tags=["analysis"])
 
@@ -18,15 +19,6 @@ class TextAnalysisIn(BaseModel):
 @router.post("/text", response_model=AnalysisResult)
 def analyze_text(data: TextAnalysisIn, user: CurrentCustomer, db: DB) -> AnalysisResult:
     """Check an ingredient list typed in from a label, against the customer's saved allergies."""
-    source = EvidenceSource(
-        id="manual",
-        type=SourceType.label_manual,
-        name=data.product_name or "Ingredient list you entered",
-        ingredients_text=data.ingredients_text,
-        cross_contact_text=data.may_contain_text or None,
-        reference="label text typed by the customer",
-        verification="label",
-        as_of=utcnow(),
-    )
+    label = LabelTextAdapter().convert(data.ingredients_text, data.may_contain_text, data.product_name, utcnow())
     ctx = AnalysisContext(identity_label=data.product_name)
-    return analyze_for_user(db, user, [source], ctx, record=AssessmentLink(kind="text"))
+    return analyze_for_user(db, user, label.sources, ctx, record=AssessmentLink(kind="text"))

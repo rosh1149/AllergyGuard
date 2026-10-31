@@ -10,6 +10,8 @@ const TYPE_LABELS: Record<string, string> = {
   missing_ingredient: "Missing ingredient",
   incorrect_ingredient: "Ingredient not used",
   missing_allergen: "Missing allergen",
+  incorrect_allergen: "Incorrect allergen",
+  outdated_recipe: "Outdated recipe",
   cross_contact: "Cross-contact risk",
   other: "Other",
 };

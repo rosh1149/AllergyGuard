@@ -41,6 +41,18 @@ class OffUnavailable(Exception):
     """Open Food Facts could not be reached or returned an error."""
 
 
+class OffRateLimited(OffUnavailable):
+    """Open Food Facts asked us to slow down (HTTP 429)."""
+
+    def __init__(self, retry_after: str | None = None):
+        super().__init__(f"Rate limited (retry after {retry_after or 'unknown'} s)")
+        self.retry_after = retry_after
+
+
+class OffMalformed(OffUnavailable):
+    """Open Food Facts returned a response we could not understand."""
+
+
 @dataclass
 class OffProduct:
     barcode: str
@@ -101,17 +113,24 @@ class OpenFoodFactsClient:
             raise OffUnavailable(str(e)) from e
         if r.status_code == 404:
             return {}
+        if r.status_code == 429:
+            raise OffRateLimited(r.headers.get("Retry-After"))
         if r.status_code >= 400:
             raise OffUnavailable(f"HTTP {r.status_code}")
         try:
-            return r.json()
+            data = r.json()
         except ValueError as e:
-            raise OffUnavailable("Invalid JSON") from e
+            raise OffMalformed("Invalid JSON") from e
+        if not isinstance(data, dict):
+            raise OffMalformed("Unexpected response shape")
+        return data
 
     def get_product(self, barcode: str) -> OffProduct | None:
         data = self._get(f"/api/v2/product/{barcode}.json", {"fields": FIELDS})
         if data.get("status") != 1 or not data.get("product"):
             return None
+        if not isinstance(data["product"], dict):
+            raise OffMalformed("Unexpected product shape")
         raw = dict(data["product"])
         raw.setdefault("code", barcode)
         return _product(raw, self.base_url)
@@ -128,4 +147,7 @@ class OpenFoodFactsClient:
                 "fields": FIELDS,
             },
         )
-        return [_product(p, self.base_url) for p in data.get("products", []) if p.get("code")]
+        products = data.get("products", [])
+        if not isinstance(products, list):
+            raise OffMalformed("Unexpected search shape")
+        return [_product(p, self.base_url) for p in products if isinstance(p, dict) and p.get("code")]

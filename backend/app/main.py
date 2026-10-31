@@ -17,6 +17,7 @@ from app.api.routes import (
     public,
     restaurant_analysis,
     restaurants,
+    review,
 )
 from app.core.config import get_settings
 from app.db.init_db import init_db
@@ -53,6 +54,9 @@ app.include_router(public.router, prefix=API)
 app.include_router(feedback.router, prefix=API)
 app.include_router(knowledge.router, prefix=API)
 app.include_router(history.router, prefix=API)
+app.include_router(review.admin_router, prefix=API)
+app.include_router(review.restaurant_router, prefix=API)
+app.include_router(review.sources_router, prefix=API)
 
 
 @app.get(f"{API}/health", tags=["health"])

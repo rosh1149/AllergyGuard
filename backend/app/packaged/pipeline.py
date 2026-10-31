@@ -8,24 +8,21 @@ from dataclasses import dataclass, field
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
 from app.engine.service import AssessmentLink, analyze_for_user
 from app.models.common import utcnow
 from app.packaged.snapshots import record_snapshot
-from app.engine.types import (
-    MIN_IDENTITY_CONFIDENCE,
-    AnalysisContext,
-    AnalysisResult,
-    CrossContactDecl,
-    EvidenceSource,
-    SourceType,
-)
+from app.engine.types import MIN_IDENTITY_CONFIDENCE, MIN_SOURCE_CONFIDENCE, AnalysisContext, AnalysisResult, EvidenceSource
+from app.models import ReviewKind
+from app.review.queue import ReviewFlag, queue_flags
 from app.models import User
 from app.packaged.barcode import normalize_barcode, read_barcodes
 from app.packaged.images import LoadedImage
 from app.packaged.ocr import IngredientSection, OcrResult, extract_ingredient_section, run_ocr
-from app.packaged.off import OffProduct, OffUnavailable, OpenFoodFactsClient, name_similarity
+from app.packaged.off import OffProduct, OpenFoodFactsClient, name_similarity
 from app.packaged.vision import ProductGuess, identify_product
+from app.sources.base import AdapterStatus
+from app.sources.label import LabelPhotoAdapter
+from app.sources.open_food_facts import OpenFoodFactsAdapter
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +71,15 @@ class PackagedAnalysisOut(BaseModel):
     label: LabelInfo
     images: list[ImageInfo]
     steps: list[Step]
+    # Other likely products when the name/photo match was ambiguous, so the app can ask which one it is.
+    product_candidates: list["ProductCandidate"] = []
+    needs_confirmation: bool = False
+
+
+class ProductCandidate(BaseModel):
+    barcode: str
+    name: str
+    similarity: float
 
 
 @dataclass
@@ -83,67 +89,131 @@ class _Identity:
     confidence: float = 0.0
     guess_label: str = ""
     limitations: list[str] = field(default_factory=list)
+    candidates: list[ProductCandidate] = field(default_factory=list)
+    ambiguous: bool = False  # several products matched about equally well
+    query: str = ""
 
 
-def _best_match(off: OpenFoodFactsClient, query: str) -> tuple[OffProduct | None, float]:
-    best, best_sim = None, 0.0
-    for p in off.search(query):
+FAILURE_MESSAGES = {
+    AdapterStatus.rate_limited: "The product database is busy (too many requests), so it was not used. Try again in a minute.",
+    AdapterStatus.malformed: "The product database returned data that could not be read, so it was not used.",
+    AdapterStatus.unavailable: "The product database could not be reached, so only the label photo was used.",
+}
+AMBIGUITY_MARGIN = 0.1  # top two name matches closer than this: ask the customer which one it is
+AMBIGUOUS_CONFIDENCE_CAP = 0.6  # an ambiguous match never counts as a confident identification
+
+
+def _ranked(products: list[OffProduct], query: str) -> list[tuple[OffProduct, float]]:
+    scored = {}
+    for p in products:
         sim = max(name_similarity(query, p.display_name), name_similarity(query, f"{p.brand} {p.name}"))
-        if sim > best_sim:
-            best, best_sim = p, sim
-    return (best, best_sim) if best_sim >= MIN_SEARCH_SIMILARITY else (None, best_sim)
+        if p.barcode not in scored or sim > scored[p.barcode][1]:
+            scored[p.barcode] = (p, sim)
+    return sorted(scored.values(), key=lambda x: -x[1])
+
+
+def _failed(ident: _Identity, steps: list[Step], result) -> _Identity:
+    log.warning("Product database adapter failed (%s): %s", result.status.value, result.detail)
+    ident.limitations.append(FAILURE_MESSAGES[result.status])
+    steps.append(Step(name="product_lookup", status="failed", detail=f"Product database {result.status.value.replace('_', ' ')}."))
+    return ident
 
 
 def _identify(
-    off: OpenFoodFactsClient | None,
+    adapter: OpenFoodFactsAdapter,
     barcodes: list[str],
     guess: ProductGuess | None,
     name_hint: str,
     steps: list[Step],
 ) -> _Identity:
     ident = _Identity()
-    if off is None:
+    if adapter.client is None:
         steps.append(Step(name="product_lookup", status="skipped", detail="Product database lookup is disabled."))
         return ident
-    try:
-        for code in barcodes:
-            product = off.get_product(code)
-            if product:
-                ident.product, ident.method, ident.confidence = product, "barcode", BARCODE_CONFIDENCE
-                steps.append(Step(name="product_lookup", status="done", detail=f"Found barcode {code}."))
-                return ident
-        if barcodes:
-            ident.limitations.append(
-                f"Barcode {', '.join(barcodes)} was not found in the product database."
-            )
-
-        query, base_conf, method = "", 0.0, ""
-        if guess and guess.is_packaged_food and (guess.brand or guess.product_name):
-            query = " ".join(p for p in (guess.brand, guess.product_name, guess.variant) if p)
-            base_conf, method = guess.confidence, "image_recognition"
-            ident.guess_label = " ".join(p for p in (query, guess.size) if p)
-        elif name_hint.strip():
-            query, base_conf, method = name_hint.strip(), 0.9, "name_search"
-            ident.guess_label = query
-        if not query:
-            steps.append(Step(name="product_lookup", status="skipped", detail="No barcode or product name to look up."))
+    for code in barcodes:
+        r = adapter.lookup(code)
+        if r.status.failed:
+            return _failed(ident, steps, r)
+        if r.ok:
+            ident.product, ident.method, ident.confidence = r.payload, "barcode", BARCODE_CONFIDENCE
+            steps.append(Step(name="product_lookup", status="done", detail=r.detail))
             return ident
+    if barcodes:
+        ident.limitations.append(f"Barcode {', '.join(barcodes)} was not found in the product database.")
 
-        product, sim = _best_match(off, query)
-        if product is None:
-            ident.limitations.append(f"No product database entry matched '{query}'.")
-            steps.append(Step(name="product_lookup", status="done", detail=f"No match for '{query}'."))
-            return ident
-        ident.product, ident.method = product, method
-        ident.confidence = round(base_conf * sim, 2)
-        steps.append(
-            Step(name="product_lookup", status="done", detail=f"Best match for '{query}': {product.display_name}.")
+    query, base_conf, method = "", 0.0, ""
+    if guess and guess.is_packaged_food and (guess.brand or guess.product_name):
+        query = " ".join(p for p in (guess.brand, guess.product_name, guess.variant) if p)
+        base_conf, method = guess.confidence, "image_recognition"
+        ident.guess_label = " ".join(p for p in (query, guess.size) if p)
+    elif name_hint.strip():
+        query, base_conf, method = name_hint.strip(), 0.9, "name_search"
+        ident.guess_label = query
+    if not query:
+        steps.append(Step(name="product_lookup", status="skipped", detail="No barcode or product name to look up."))
+        return ident
+    ident.query = query
+
+    r = adapter.search(query)
+    if r.status.failed:
+        return _failed(ident, steps, r)
+    ranked = [(p, sim) for p, sim in _ranked(r.payload or [], query) if sim >= MIN_SEARCH_SIMILARITY]
+    if not ranked:
+        ident.limitations.append(f"No product database entry matched '{query}'.")
+        steps.append(Step(name="product_lookup", status="done", detail=f"No match for '{query}'."))
+        return ident
+    product, sim = ranked[0]
+    ident.product, ident.method = product, method
+    ident.confidence = round(base_conf * sim, 2)
+    ident.candidates = [ProductCandidate(barcode=p.barcode, name=p.display_name or p.barcode, similarity=round(s, 2))
+                        for p, s in ranked[:3]]
+    if len(ranked) > 1 and sim - ranked[1][1] < AMBIGUITY_MARGIN:
+        ident.ambiguous = True
+        ident.confidence = min(ident.confidence, AMBIGUOUS_CONFIDENCE_CAP)
+        ident.limitations.append(
+            f"Several products match '{query}' about equally well ("
+            + ", ".join(c.name for c in ident.candidates)
+            + "). Choose yours or scan the barcode; until then the product database is not treated as reliable."
         )
-    except OffUnavailable as e:
-        log.warning("Open Food Facts unavailable: %s", e)
-        ident.limitations.append("The product database could not be reached, so only the label photo was used.")
-        steps.append(Step(name="product_lookup", status="failed", detail="Product database unavailable."))
+    steps.append(Step(name="product_lookup", status="done", detail=f"Best match for '{query}': {product.display_name}."))
     return ident
+
+
+def _review_flags(ident: _Identity, picked, images, ocr_available: bool, identity_label: str) -> list[ReviewFlag]:
+    """Uncertain input worth a person's look. Only text and scores are kept, never the photos."""
+    flags: list[ReviewFlag] = []
+    p = ident.product
+    product_key = (p.barcode if p and ident.method == "barcode" else ident.query) or identity_label or "unidentified product"
+    if ident.ambiguous:
+        flags.append(ReviewFlag(
+            ReviewKind.multiple_product_matches, ident.query,
+            f"Several products match '{ident.query}'.",
+            {"candidates": [c.model_dump() for c in ident.candidates]},
+        ))
+    elif p and ident.confidence < MIN_IDENTITY_CONFIDENCE:
+        flags.append(ReviewFlag(
+            ReviewKind.low_confidence_product, product_key,
+            f"'{ident.query or p.barcode}' was matched to {p.display_name} with low confidence.",
+            {"method": ident.method, "confidence": ident.confidence, "matched_barcode": p.barcode,
+             "matched_name": p.display_name},
+        ))
+    if images and ocr_available:
+        issues = sorted({i for img in images for i in img.issues})
+        if picked is None:
+            flags.append(ReviewFlag(ReviewKind.unreadable_label, product_key,
+                                    f"No ingredient list could be read for {product_key}.", {"image_issues": issues}))
+        else:
+            _, ocr, section = picked
+            if ocr.confidence < MIN_SOURCE_CONFIDENCE:
+                flags.append(ReviewFlag(ReviewKind.unreadable_label, product_key,
+                                        f"The label for {product_key} was read with low confidence.",
+                                        {"ocr_confidence": round(ocr.confidence, 2), "text": section.ingredients_text[:1000],
+                                         "image_issues": issues}))
+            elif not section.found_heading:
+                flags.append(ReviewFlag(ReviewKind.incomplete_label, product_key,
+                                        f"No 'Ingredients' heading was found on the label for {product_key}.",
+                                        {"text": section.ingredients_text[:1000]}))
+    return flags
 
 
 def _pick_label(ocr_results: list[tuple[int, OcrResult]]) -> tuple[int, OcrResult, IngredientSection] | None:
@@ -221,7 +291,7 @@ def run_packaged_pipeline(
         )
         if guess:
             barcodes.extend(c for c in [normalize_barcode(guess.barcode_digits)] if c)
-    ident = _identify(off, barcodes, guess, product_name, steps)
+    ident = _identify(OpenFoodFactsAdapter(off), barcodes, guess, product_name, steps)
     limitations.extend(ident.limitations)
 
     # 4. Evidence
@@ -241,19 +311,7 @@ def run_packaged_pipeline(
             limitations.append(
                 "No 'Ingredients' heading was found in the photo; the text read may not be the full ingredient list."
             )
-        sources.append(
-            EvidenceSource(
-                id="label",
-                type=SourceType.label_ocr,
-                name="Package label photo",
-                ingredients_text=section.ingredients_text,
-                complete=section.found_heading,
-                confidence=ocr.confidence,
-                reference=f"label photo {idx + 1}",
-                verification="label",
-                as_of=now,
-            )
-        )
+        sources.extend(LabelPhotoAdapter().convert(section, ocr, idx, now).sources)
 
     product_info = None
     snapshot_id = None
@@ -278,26 +336,7 @@ def run_packaged_pipeline(
                     "This product's database record has changed since we last saw it ("
                     + "; ".join(changes) + "). The product may have been reformulated: check the package label."
                 )
-            sources.append(
-                EvidenceSource(
-                    id=f"off:{p.barcode}",
-                    type=SourceType.product_database,
-                    name=f"Open Food Facts: {p.display_name or p.barcode}",
-                    ingredients_text=p.ingredients_text or None,
-                    declared_allergens=p.allergen_codes,
-                    cross_contact=[
-                        CrossContactDecl(c, "possible", "Listed as traces", kind="precautionary_label", status="reported")
-                        for c in p.trace_codes
-                    ],
-                    complete=bool(p.ingredients_text),
-                    url=p.url,
-                    note="Community-maintained database; may be out of date.",
-                    reference=f"barcode {p.barcode}",
-                    verification="community",
-                    as_of=p.updated_at,
-                    max_age_days=get_settings().product_record_max_age_days,
-                )
-            )
+            sources.append(OpenFoodFactsAdapter.to_evidence(p))
             limitations.append(
                 "Product database entries are community-maintained and may not match the current recipe."
             )
@@ -320,6 +359,7 @@ def run_packaged_pipeline(
         db, user, sources, ctx,
         record=AssessmentLink(kind="packaged", barcode=p.barcode if p else None, product_snapshot_id=snapshot_id),
     )
+    queue_flags(db, _review_flags(ident, picked, images, ocr_available, identity_label), result.assessment_id)
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
 
     return PackagedAnalysisOut(
@@ -328,4 +368,6 @@ def run_packaged_pipeline(
         label=label,
         images=[ImageInfo(width=i.width, height=i.height, sharpness=i.sharpness, brightness=i.brightness, issues=i.issues) for i in images],
         steps=steps,
+        product_candidates=ident.candidates if ident.ambiguous else [],
+        needs_confirmation=ident.ambiguous,
     )

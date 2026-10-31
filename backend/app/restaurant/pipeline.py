@@ -16,30 +16,28 @@ from app.engine.types import (
     MIN_IDENTITY_CONFIDENCE,
     AnalysisContext,
     AnalysisResult,
-    CrossContactDecl,
     EvidenceSource,
-    SourceType,
 )
 from app.models import (
-    Branch,
-    FeedbackSuggestion,
+    ReviewKind,
     MenuItem,
     MenuItemStatus,
-    RecipeVersion,
     Restaurant,
-    SuggestionStatus,
-    SuggestionType,
     User,
     VerificationStatus,
 )
 from app.packaged.images import LoadedImage
 from app.packaged.pipeline import Step
 from app.restaurant.fallback import RecipeSource, public_recipe_candidates, staff_questions
-from app.restaurant.recipes import current_version, to_evidence
+from app.restaurant.recipes import current_version
+from app.review.queue import ReviewFlag, queue_flags
+from app.sources.restaurant import CustomerReportsAdapter, PublicRecipeAdapter, RestaurantRecordAdapter
 from app.restaurant.vision import identify_dish
 
 MIN_MATCH = 0.5  # below this, no menu item is treated as the dish
 PHOTO_ONLY_CAP = 0.6  # a photo alone never reaches the 0.7 identity threshold
+AMBIGUITY_MARGIN = 0.1  # top two matches closer than this: ask the customer which dish it is
+AMBIGUOUS_CONFIDENCE_CAP = 0.6
 
 
 class RestaurantInfo(BaseModel):
@@ -77,6 +75,8 @@ class RestaurantAnalysisOut(BaseModel):
     public_recipe_sources: list[RecipeSource]
     steps: list[Step]
     can_submit_feedback: bool
+    # The dish match is uncertain: the app should ask the customer to pick from `candidates`.
+    needs_confirmation: bool = False
 
 
 @dataclass
@@ -103,41 +103,6 @@ def _match_dish(
         if conf >= 0.3:
             matches.append(_Match(item, round(conf, 2), method))
     return sorted(matches, key=lambda m: -m.confidence)
-
-
-def _suggestion_source(db: Session, item: MenuItem, version: RecipeVersion) -> tuple[EvidenceSource | None, int]:
-    """Unreviewed customer reports about the current recipe version. Reports made against an
-    earlier version are not used (the recipe has changed since); their count is returned."""
-    pending = db.scalars(
-        select(FeedbackSuggestion).where(
-            FeedbackSuggestion.menu_item_id == item.id, FeedbackSuggestion.status == SuggestionStatus.unverified
-        )
-    ).all()
-    older = [s for s in pending if s.recipe_version_id is not None and s.recipe_version_id != version.id]
-    pending = [s for s in pending if s not in older]
-    ingredients, declared, cross = [], [], []
-    for s in pending:
-        if s.suggestion_type == SuggestionType.missing_ingredient and s.ingredient_name:
-            ingredients.append(s.ingredient_name)
-        elif s.suggestion_type == SuggestionType.missing_allergen and s.allergen:
-            declared.append(s.allergen.code)
-        elif s.suggestion_type == SuggestionType.cross_contact and s.allergen:
-            cross.append(CrossContactDecl(s.allergen.code, "possible", s.message or "Reported by a customer",
-                                          kind="other", status="reported"))
-    if not (ingredients or declared or cross):
-        return None, len(older)
-    return EvidenceSource(
-        id=f"suggestions:{item.id}",
-        type=SourceType.customer_suggestion,
-        name=f"Unreviewed customer reports for {item.name}",
-        ingredients=ingredients,
-        declared_allergens=declared,
-        cross_contact=cross,
-        complete=False,
-        reference=f"{len(pending)} customer report(s) on recipe v{version.version_number}",
-        verification="customer",
-        as_of=max(s.created_at for s in pending),
-    ), len(older)
 
 
 def run_restaurant_pipeline(
@@ -168,6 +133,8 @@ def run_restaurant_pipeline(
     guess = None
     dish_label = dish_name
     link = AssessmentLink(kind="restaurant", restaurant_id=restaurant_id)
+    flags: list[ReviewFlag] = []
+    needs_confirmation = False
 
     if restaurant_id is not None:
         restaurant = db.get(Restaurant, restaurant_id)
@@ -216,19 +183,45 @@ def run_restaurant_pipeline(
         candidates = [DishCandidate(menu_item_id=m.item.id, name=m.item.name, confidence=m.confidence) for m in matches[:3]]
 
         chosen = matches[0] if matches and matches[0].confidence >= MIN_MATCH else None
+        # Two menu items matched about equally well: ask which one, and don't trust either meanwhile.
+        ambiguous = bool(
+            chosen and chosen.method != "selected_from_menu" and len(matches) > 1
+            and matches[1].confidence >= MIN_MATCH and chosen.confidence - matches[1].confidence < AMBIGUITY_MARGIN
+        )
+        query = dish_name or (guess.menu_choice or guess.dish_description if guess else "")
         if chosen:
             item, version = chosen.item, current_version(chosen.item)
+            conf = min(chosen.confidence, AMBIGUOUS_CONFIDENCE_CAP) if ambiguous else chosen.confidence
             dish = DishInfo(
                 menu_item_id=item.id, name=item.name, match_method=chosen.method,
-                match_confidence=chosen.confidence, confident=chosen.confidence >= MIN_IDENTITY_CONFIDENCE,
+                match_confidence=conf, confident=conf >= MIN_IDENTITY_CONFIDENCE,
                 recipe_version=version.version_number, verification_status=version.verification_status,
             )
-            identity_conf = chosen.confidence
+            identity_conf = conf
+            needs_confirmation = not dish.confident
+            if ambiguous:
+                limitations.append(
+                    "Several menu items match about equally well ("
+                    + ", ".join(c.name for c in candidates) + "). Choose the dish from the menu for a reliable result."
+                )
+                flags.append(ReviewFlag(
+                    ReviewKind.multiple_dish_matches, query, f"'{query}' matches several menu items.",
+                    {"candidates": [c.model_dump() for c in candidates]}, restaurant.id,
+                ))
+            elif not dish.confident:
+                flags.append(ReviewFlag(
+                    ReviewKind.low_confidence_dish, query,
+                    f"'{query}' was matched to {item.name} with low confidence.",
+                    {"matched_item": item.name, "method": chosen.method, "confidence": chosen.confidence}, restaurant.id,
+                ))
             dish_label = item.name
-            sources.append(to_evidence(item, version, restaurant.name))
-            suggestion_src, older_reports = _suggestion_source(db, item, version)
-            if suggestion_src:
-                sources.append(suggestion_src)
+            records = RestaurantRecordAdapter().fetch(item, version, restaurant.name)
+            sources.extend(records.sources)
+            reports = CustomerReportsAdapter().fetch(db, item, version)
+            sources.extend(reports.sources)
+            older_reports = reports.payload or 0
+            if reports.status.failed:
+                limitations.append("Unreviewed customer reports could not be loaded.")
             if older_reports:
                 limitations.append(
                     f"{older_reports} unreviewed customer report(s) refer to an earlier version of this recipe "
@@ -236,7 +229,7 @@ def run_restaurant_pipeline(
                 )
             link = AssessmentLink(kind="restaurant", restaurant_id=restaurant.id, menu_item_id=item.id,
                                   recipe_version_id=version.id)
-            if not dish.confident:
+            if not dish.confident and not ambiguous:
                 limitations.append(
                     f"We are not sure this is '{item.name}'. Confirm the dish from the menu for a reliable result."
                 )
@@ -246,6 +239,13 @@ def run_restaurant_pipeline(
             limitations.append(
                 f"This dish could not be matched to the {branch.name} menu, so the restaurant's own records were not used."
             )
+            needs_confirmation = bool(candidates)
+            if dish_name:
+                flags.append(ReviewFlag(
+                    ReviewKind.unmatched_dish, dish_name,
+                    f"A customer asked about '{dish_name}', which did not match the {branch.name} menu.",
+                    {"branch": branch.name, "closest": [c.model_dump() for c in candidates]}, restaurant.id,
+                ))
     else:
         info = RestaurantInfo(registered=False, name=restaurant_name.strip() or "Unregistered restaurant", location=location.strip())
         if images and use_ai and not dish_name:
@@ -261,23 +261,17 @@ def run_restaurant_pipeline(
         )
 
     if dish is None:
-        candidates_found = None
+        public = None
         if dish_label and use_ai:
             context = ", ".join(p for p in (info.name if not info.registered or info.restaurant_id else "", info.location) if p)
-            candidates_found = public_recipe_candidates(dish_label, context)
-        if candidates_found:
-            recipe_sources = candidates_found.sources
-            sources.append(EvidenceSource(
-                id="public_recipes",
-                type=SourceType.public_recipe,
-                name=f"Public recipes for '{candidates_found.dish or dish_label}'",
-                ingredients=candidates_found.ingredients,
-                complete=False,
-                url=recipe_sources[0].url if recipe_sources else None,
-                reference=", ".join(r.url for r in recipe_sources[:3] if r.url),
-                verification="public",
-            ))
-            steps.append(Step(name="public_recipes", status="done", detail=f"{len(candidates_found.ingredients)} candidate ingredients."))
+            public = PublicRecipeAdapter(public_recipe_candidates).fetch(dish_label, context)
+        if public is not None and public.ok:
+            recipe_sources = public.payload.sources
+            sources.extend(public.sources)
+            steps.append(Step(name="public_recipes", status="done", detail=public.detail))
+        elif public is not None and public.status.failed:
+            steps.append(Step(name="public_recipes", status="failed", detail="Public recipe search failed."))
+            limitations.append("Public recipe search failed, so no typical ingredients could be suggested.")
         else:
             steps.append(Step(
                 name="public_recipes", status="skipped",
@@ -292,6 +286,7 @@ def run_restaurant_pipeline(
         limitations=limitations,
     )
     result = analyze_for_user(db, user, sources, ctx, record=link)
+    queue_flags(db, flags, result.assessment_id)
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
     return RestaurantAnalysisOut(
         result=result,
@@ -302,4 +297,5 @@ def run_restaurant_pipeline(
         public_recipe_sources=recipe_sources,
         steps=steps,
         can_submit_feedback=dish is not None,
+        needs_confirmation=needs_confirmation,
     )

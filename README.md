@@ -219,6 +219,53 @@ Every source and every finding now says where it came from and how current it is
 Existing databases are upgraded in place at startup (`app/db/upgrade.py`, which adds the new
 columns; new tables are created automatically).
 
+## Source adapters, feedback review and the review queue (Step D)
+
+**Source adapters** (`backend/app/sources/`). Each evidence source is fetched through an adapter that
+turns its data into the engine's common `EvidenceSource`:
+
+| Adapter | Source type |
+|---|---|
+| `open_food_facts` | product database (barcode lookup, name search) |
+| `label_photo` / `label_text` | package label (OCR / typed) |
+| `restaurant_records` | the restaurant's recipe version |
+| `customer_reports` | unreviewed customer reports (candidates only) |
+| `public_recipes` | public web recipes (candidates only) |
+
+Every call returns a status (`ok`, `not_found`, `unavailable`, `rate_limited`, `malformed`,
+`skipped`), the time it was retrieved and how long it took. A failing or buggy adapter only removes
+that source and adds a limitation; it never breaks the analysis. Adapters fetch and convert only.
+Normalization and outcomes stay in the engine, so adding a source means writing one adapter.
+`GET /api/sources` (admin) lists the adapters with call and failure counts.
+
+**Feedback review** (extends Part 4):
+- New categories: `incorrect_allergen` and `outdated_recipe`. Both need a message.
+- Staff can confirm, reject, or `clarification_requested` with a question. The customer answers
+  through `POST /api/me/feedback/{id}/clarification`, and the suggestion goes back for review.
+  Pending reports, including those awaiting an answer, still appear as unreviewed reports. The
+  original message is never edited.
+- A confirmed `outdated_recipe` publishes the same recipe as an **unverified** version, so it can no
+  longer rule allergens out until staff update and verify it.
+- A confirmed `incorrect_allergen` is never applied automatically, because removing an allergen makes
+  the record less cautious. Staff edit the recipe themselves.
+- Each suggestion shows its `history` (submitted, question, answer, decision) and, once confirmed,
+  its `impact`: the version it produced, what changed, and how many later customer checks used it.
+
+**Review queue for uncertain input** (`review_items`). The analysis still answers the customer
+cautiously, and the uncertain input is kept for a person to look at instead of being forced into a
+conclusion:
+- Products: several close name matches (the customer is asked to choose via `product_candidates` /
+  `needs_confirmation`), low-confidence identification, unreadable labels, labels without an
+  "Ingredients" heading.
+- Dishes: several close menu matches (`needs_confirmation`), low-confidence matches, and dishes
+  customers asked about that are not on the menu.
+- An ambiguous match is capped below the identity threshold, so it never counts as verified evidence.
+- Repeat occurrences are merged and counted. Only text and scores are stored, with no photos and no
+  customer identity.
+- Admins use `GET /api/review-queue`, `/summary` (which includes open unresolved ingredients) and
+  `POST /api/review-queue/{id}/decision`. Restaurant staff see and resolve their own dish items at
+  `/api/restaurants/{id}/review-queue`, and each decision is audited.
+
 ## Packaged-food pipeline (Part 3)
 
 `POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,
@@ -347,6 +394,10 @@ the API enforces the same rules.
 | POST | `/api/analyze/packaged` | customer: photos / barcode / product name |
 | POST | `/api/analyze/text` | customer: check a typed-in ingredient list against their saved allergies |
 | GET / DELETE | `/api/me/assessments`, `/api/me/assessments/{id}` | customer: stored results, with `outdated` flags |
+| POST | `/api/me/feedback/{id}/clarification` | customer: answer a restaurant's question |
+| GET / POST | `/api/review-queue`, `/summary`, `/{id}/decision` | admin |
+| GET / POST | `/api/restaurants/{id}/review-queue`, `/{item_id}/decision` | restaurant staff |
+| GET | `/api/sources` | admin: source adapters and their health |
 
 ## Layout
 

@@ -182,9 +182,11 @@ export type SuggestionType =
   | "missing_ingredient"
   | "incorrect_ingredient"
   | "missing_allergen"
+  | "incorrect_allergen"
   | "cross_contact"
+  | "outdated_recipe"
   | "other";
-export type SuggestionStatus = "unverified" | "confirmed" | "rejected";
+export type SuggestionStatus = "unverified" | "clarification_requested" | "confirmed" | "rejected";
 
 export interface Feedback {
   id: number;
@@ -202,6 +204,16 @@ export interface Feedback {
   decided_at: string | null;
   decision_note: string;
   resulting_version_number: number | null;
+  clarification_request?: string;
+  clarification_response?: string;
+  clarified_at?: string | null;
+  impact?: {
+    resulting_version_number: number;
+    version_is_current: boolean;
+    assessments_since: number;
+    assessments_flagging_allergen: number | null;
+  } | null;
+  history?: { action: string; at: string; note: string }[];
 }
 
 // ---- dashboard ----
