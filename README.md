@@ -329,6 +329,22 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 cd backend && python -m app.evaluation
 ```
 
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Component, sequence, engine, knowledge-workflow, feedback and deployment diagrams |
+| [docs/ALGORITHMS.md](docs/ALGORITHMS.md) | Pseudocode: analysis, normalization, concept mapping, list comparison, decision rules, record selection, source calls, knowledge changes |
+| [docs/METHODOLOGY.md](docs/METHODOLOGY.md) | Research question, development phases, datasets, compared methods, metrics, reproducibility |
+| [docs/RESEARCH_RESULTS.md](docs/RESEARCH_RESULTS.md) | Held-out results, baselines, ablations, error analysis |
+| [docs/LIMITATIONS.md](docs/LIMITATIONS.md) | Safety scope, missing evidence, statistical and engineering limits, open questions |
+| [docs/KNOWLEDGE_MODEL.md](docs/KNOWLEDGE_MODEL.md) | Concept types, relations and graph rules |
+| [docs/INPUT_PATHWAYS.md](docs/INPUT_PATHWAYS.md) | Photos, barcodes, manufacturer pages, web search, recipe versions |
+| [docs/DATASETS.md](docs/DATASETS.md), [docs/EVALUATION.md](docs/EVALUATION.md) | Datasets, benchmark and release gate |
+| [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Engine, API and photo-processing measurements |
+| [docs/MIGRATIONS.md](docs/MIGRATIONS.md), [SECURITY.md](SECURITY.md) | Database migrations; security boundaries |
+| [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md) | Requirements mapped to tests |
+
 ## Stage 5: engineering maturity
 
 - **Follow-up knowledge fixes** from the held-out error analysis: bread, breadcrumbs (panko, rusk),
