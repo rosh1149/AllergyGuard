@@ -32,9 +32,10 @@ tests on the 53 positives:
 | AllergyGuard vs B2 | 17 : 0 | 1.5 × 10⁻⁵ |
 | AllergyGuard vs B3 | 15 : 0 | 6.1 × 10⁻⁵ |
 
-**What it costs.** AllergyGuard answered *Unknown* for 30 % of checks and over-warned on 3 of 16
-negatives. All three were caused by an ingredient the knowledge base does not know (§4). Its exact
-outcome (present / cross-contact / absent / undeterminable) matched the truth in 91.3 % of checks.
+**What it costs.** AllergyGuard answered *Unknown* for 21 of 69 checks (30 %) and over-warned on 3 of
+16 negatives. All three over-warnings were caused by an ingredient the knowledge base does not know
+(§4). Its exact outcome (present / cross-contact / absent / undeterminable) matched the truth in 63 of
+69 checks (91.3 %). The 6 mismatches are listed in §4. All of them still warned.
 
 **Ingredient level** (does an ingredient carry the right allergens?):
 
@@ -97,6 +98,8 @@ covers.
 | H-O15 "rnaize starch" | possible wheat/gluten | corrected to "maize starch", but there is no "maize starch" alias, so the generic "starch" (source unstated) was matched | alias gap → over-caution |
 | H-I21 "breadcrumbs" | gluten linked, wheat **not** linked | breadcrumbs are only in the term list, as gluten | **coverage gap with a latent risk** |
 | H-O13 "egq white" | not corrected | q/g is not in the OCR confusion table; the text stays unresolved, so eggs would be UNKNOWN | OCR coverage gap (safe) |
+| H-S30 label vs a database list for a different product (milk) | PRESENT, label "undeterminable" | the database (identity 0.9) lists butter; the unresolved list conflict keeps every allergen either list shows as PRESENT | **design question**: should an allergen shown only by one side of an *unresolved* conflict be "possible" rather than "present"? Safe either way |
+| H-S32 database entry with identity 0.45 (milk, gluten) | UNKNOWN, label "present" | low identification confidence makes the entry a candidate ("may belong to a different item") | **label question**: if the match is wrong the food may not contain them; UNKNOWN may be the better label. For the expert review |
 
 **The latent risk.** "Breadcrumbs" did not cause a wrong answer in any held-out scenario: the one
 containing breadcrumbs listed its wheat flour. But a label reading only "breadcrumbs" could give a
@@ -109,6 +112,13 @@ wheat-only allergy NOT LISTED for wheat. This is the most important follow-up.
 - add q→g to the OCR confusion table
 
 **What the 30 % Unknown share means.** Unknown is the honest answer whenever the evidence cannot settle
-the question. In the held-out set, 22 of 69 checks were labelled *undeterminable* (32 %), so a large
-Unknown share is expected. The system answered Unknown when the truth was knowable in only the 3 cases
-above.
+the question. 17 of the 69 held-out checks (25 %) are labelled *undeterminable*. The system's 21 Unknown
+answers break down as:
+
+| Unknown answers | Truth label | Note |
+|---|---|---|
+| 16 | undeterminable | correct |
+| 3 | absent | over-caution from coverage gaps (H-S02, H-S34) |
+| 2 | present | the uncertain-identification case H-S32, whose label is itself questionable |
+
+The seventeenth undeterminable check (H-S30) was answered PRESENT.
