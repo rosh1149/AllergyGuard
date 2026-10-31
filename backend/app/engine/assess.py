@@ -28,6 +28,7 @@ from datetime import datetime, timezone
 from itertools import combinations
 
 from app.engine.knowledge import KnowledgeBase, custom_match
+from app.engine.ablation import current as current_ablation
 from app.engine.rules import rules_for
 from app.engine.normalize import NormalizedIngredient, normalize_ingredients
 from app.engine.text import (
@@ -112,12 +113,13 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: 
         _, stmts = split_precautions(cc)
         precautions.extend(stmts or [cc])
 
-    identity_ok = not (
+    ab = current_ablation()
+    identity_ok = ab.no_source_reliability or not (
         src.type in IDENTITY_DEPENDENT
         and ctx.identity_confidence is not None
         and ctx.identity_confidence < MIN_IDENTITY_CONFIDENCE
     )
-    trusted = src.type in AUTHORITATIVE and identity_ok
+    trusted = (src.type in AUTHORITATIVE or ab.no_source_reliability) and identity_ok
 
     age = _age_days(src, now)
     fresh = src.max_age_days is None or age is None or age <= src.max_age_days
@@ -126,14 +128,16 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: 
     incomplete = list(dict.fromkeys(
         (f"'{n.original}': " if n.original else "") + n.incomplete for n in normalized if n.incomplete))
 
+    if ab.no_uncertainty:  # ablation: nothing about completeness or doubt blocks absence
+        fresh, unresolved, incomplete = True, [], []
     reason = ""
-    if src.type not in ABSENCE_CAPABLE:
+    if src.type not in ABSENCE_CAPABLE and not ab.no_source_reliability:
         reason = "This kind of source is not a verified record."
     elif not identity_ok:
         reason = "The product or dish may not have been identified correctly."
-    elif not src.complete:
+    elif not src.complete and not ab.no_uncertainty:
         reason = "The source does not provide a complete ingredient list."
-    elif src.confidence < MIN_SOURCE_CONFIDENCE:
+    elif src.confidence < MIN_SOURCE_CONFIDENCE and not ab.no_source_reliability:
         reason = "The text could not be read reliably."
     elif not items:
         reason = "No ingredients were found in this source."
@@ -228,7 +232,7 @@ def _collect(
                                         nodes=path.nodes))
                     if p.trusted:
                         p.present_codes.add(code)
-                else:
+                elif not current_ablation().no_uncertainty:  # ablation: possible links are ignored
                     ev[code].append(_ref(p, "possible_source", shown, cm.alias, concept=cm.slug, path=path.text, certainty="possible", n=n,
                                         nodes=path.nodes))
             for m in res.terms:
@@ -317,6 +321,8 @@ def _newer(a: _Prepared, b: _Prepared) -> str:
 
 def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared], ev: dict[str, list[EvidenceRef]]) -> tuple[list[Conflict], bool]:
     conflicts: list[Conflict] = []
+    if current_ablation().no_conflicts:  # ablation: disagreements are not detected
+        return conflicts, False
 
     # A source's own allergen declaration omits an allergen its ingredients indicate.
     for p in prepared:

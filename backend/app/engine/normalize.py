@@ -170,6 +170,11 @@ EMPTY_NOTE = "its brackets are empty, so its components are not given"
 
 def parse_ingredients(text: str, parent: str | None = None) -> list[ParsedItem]:
     top = parent is None
+    from app.engine.ablation import current
+
+    if top and current().no_compound:  # ablation: no bracket parsing, one item per top-level piece
+        text = _INGREDIENTS_PREFIX.sub("", unicodedata.normalize("NFKC", text))
+        return [ParsedItem(clean(p), "ingredient") for p in _split_top(text) if clean(p)]
     if top:
         text = _INGREDIENTS_PREFIX.sub("", unicodedata.normalize("NFKC", text))
         text = re.sub(r"\s*(?:\.{3}|…)", " etc", text)  # "sugar, ..." -> "sugar, etc"
@@ -320,9 +325,15 @@ def _allergens(res: ItemResolution) -> set[str]:
 
 
 def normalize_item(kb: KnowledgeBase, original: str, role: str, parent: str | None, ocr: bool) -> NormalizedIngredient:
+    from app.engine.ablation import current
+
     text = clean(original)
     if role == "class_label":
         return NormalizedIngredient(original, text, role, parent, "exact", 1.0, None)
+    if current().no_normalization:  # ablation: exact text only
+        res = _resolve(kb, text)
+        return NormalizedIngredient(original, text, role, parent, "exact" if res.status != "unresolved" else "none",
+                                    1.0 if res.status != "unresolved" else 0.0, res)
     spelled = apply_spelling(text)
     method = "spelling" if spelled != text else "exact"
     corrections = [f"'{text}' normalized to '{spelled}' (spelling)"] if spelled != text else []
@@ -434,7 +445,9 @@ def normalize_ingredients(kb: KnowledgeBase, text: str, ocr: bool = False) -> li
     """Cached per knowledge-base instance (a new knowledge version gets a fresh cache) and per fuzzy
     settings. Callers get their own copy, so changing a result never affects the cache."""
     s = get_settings()
-    key = (text, ocr, s.fuzzy_phrase_threshold, s.fuzzy_word_threshold, s.fuzzy_min_length, s.fuzzy_margin)
+    from app.engine.ablation import current
+
+    key = (text, ocr, s.fuzzy_phrase_threshold, s.fuzzy_word_threshold, s.fuzzy_min_length, s.fuzzy_margin, current())
     with _cache_lock:
         cache: OrderedDict = kb.__dict__.setdefault("_normalize_cache", OrderedDict())
         hit = cache.get(key)

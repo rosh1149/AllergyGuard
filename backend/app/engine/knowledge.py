@@ -170,7 +170,11 @@ class KnowledgeBase:
 
     def match_concepts(self, text: str) -> list[ConceptMatch]:
         """Longest non-overlapping concept-alias matches ("soy lecithin" wins over "lecithin")."""
-        cands = [ConceptMatch(s, a, m.start(), m.end()) for a, s, pat in self._aliases for m in pat.finditer(text)]
+        from app.engine.ablation import current
+
+        own_name_only = current().no_normalization  # ablation: no synonyms, only each concept's own name
+        cands = [ConceptMatch(s, a, m.start(), m.end()) for a, s, pat in self._aliases
+                 if not own_name_only or a == self.concepts[s].name for m in pat.finditer(text)]
         chosen: list[ConceptMatch] = []
         for c in sorted(cands, key=lambda c: (-(c.end - c.start), c.start)):
             if all(c.end <= o.start or c.start >= o.end for o in chosen):
@@ -230,7 +234,13 @@ class KnowledgeBase:
         paths: list[tuple[ConceptMatch, AllergenPath]] = []
         interpretations: list[str] = []
         homonym_definite: dict[ConceptMatch, set[str]] = {}
+        from app.engine.ablation import current
+
+        no_ontology = current().no_ontology
         for cm in concepts:
+            if no_ontology:  # ablation: concepts are recognised but no relationship is followed
+                reach[cm] = set()
+                continue
             ps = [p for p in self.allergen_paths(cm.slug)
                   if not any(c == p.allergen_code and s <= cm.start and cm.end <= e for c, s, e in excluded)]
             readings = self.homonyms.get(cm.alias)
@@ -243,8 +253,9 @@ class KnowledgeBase:
 
         # A recognised concept covering a term match decides that term: "cocoa butter" (a cocoa
         # product with no milk relationship) suppresses milk("butter").
-        kept = [t for t in terms if not any(cm.start <= t.start and t.end <= cm.end and t.allergen_code not in reach[cm]
-                                            for cm in concepts)]
+        kept = terms if no_ontology else [
+            t for t in terms if not any(cm.start <= t.start and t.end <= cm.end and t.allergen_code not in reach[cm]
+                                        for cm in concepts)]
         # Inside a homonym ("curd"), a direct term match counts only where every meaning agrees.
         kept = [t for t in kept if not any(cm.start <= t.start and t.end <= cm.end and t.allergen_code not in d
                                            for cm, d in homonym_definite.items())]
