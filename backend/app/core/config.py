@@ -51,7 +51,9 @@ class Settings(BaseSettings):
     background_inline: bool = False
     background_workers: int = 2
     # At most this many photo-processing jobs (OCR, barcode, recognition) run at once per worker.
-    max_concurrent_image_jobs: int = 2
+    # Photo jobs run at once; 0 = one per CPU core (measured: each OCR job then uses one core; see
+    # docs/PERFORMANCE.md).
+    max_concurrent_image_jobs: int = 0
     image_job_wait_seconds: int = 30
     # Failed-login throttling per email address and client.
     login_max_failures: int = 5
@@ -65,6 +67,14 @@ class Settings(BaseSettings):
     web_search_api_key: str = ""
     web_page_max_bytes: int = 1_000_000
     web_timeout_seconds: float = 8.0
+
+    # External sources (Open Food Facts, manufacturer pages, web search): a source that is down is
+    # retried with exponential backoff, and after repeated failures its circuit opens: it is not
+    # called for a cool-down period, so analyses don't wait on timeouts (app/sources/base.py).
+    source_max_attempts: int = 2  # 1 = no retry
+    source_backoff_seconds: float = 0.3  # before the 2nd attempt; doubles each time, plus jitter
+    source_breaker_threshold: int = 5  # consecutive failed calls that open the circuit
+    source_breaker_cooldown_seconds: int = 60
 
     # Packaged-food pipeline
     off_base_url: str = "https://world.openfoodfacts.org"

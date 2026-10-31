@@ -22,6 +22,7 @@ def _call(fn):
 @register
 class OpenFoodFactsAdapter(SourceAdapter):
     name = "open_food_facts"
+    remote = True
     source_type = SourceType.product_database
     description = "Open Food Facts product database (community-maintained): barcode lookup and name search."
 

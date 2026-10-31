@@ -4,7 +4,8 @@ os.environ["DATABASE_URL"] = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://allergyguard:allergyguard@localhost:5432/allergyguard_test"
 )
 os.environ["SEED_DEMO_DATA"] = "true"
-os.environ["BACKGROUND_INLINE"] = "true"  # queue work runs before the response, so tests can see it
+os.environ["BACKGROUND_INLINE"] = "true"
+os.environ.setdefault("SOURCE_BACKOFF_SECONDS", "0")  # retries without waiting  # queue work runs before the response, so tests can see it
 
 from sqlalchemy.engine import make_url  # noqa: E402
 
@@ -28,6 +29,14 @@ def reset_database(eng=engine) -> None:
     with eng.begin() as conn:
         conn.execute(text("DROP SCHEMA public CASCADE"))
         conn.execute(text("CREATE SCHEMA public"))
+
+
+@pytest.fixture(autouse=True)
+def _fresh_circuit_breakers():
+    """A source failing in one test must not leave its circuit open for the next."""
+    from app.sources.base import reset_breakers
+    reset_breakers()
+    yield
 
 
 @pytest.fixture(scope="session")

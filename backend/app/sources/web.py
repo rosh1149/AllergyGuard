@@ -170,6 +170,7 @@ def domain_approved(url: str, sites: list[tuple[str, str]], brand: str) -> bool:
 @register
 class ManufacturerPageAdapter(SourceAdapter):
     name = "manufacturer_pages"
+    remote = True
     source_type = SourceType.manufacturer
     description = "The product's page on its manufacturer's website (approved domains only)."
 
@@ -236,6 +237,7 @@ def search_provider() -> SearchProvider | None:
 @register
 class WebSearchAdapter(SourceAdapter):
     name = "web_search"
+    remote = True
     source_type = SourceType.web_page
     description = "Web search for the product's ingredient list; approved manufacturer domains count as manufacturer evidence, other pages as unverified candidates."
 

@@ -17,7 +17,7 @@ from sqlalchemy import func, select
 
 from app.api.deps import DB, CurrentAdmin
 from app.core.background import stats as background_stats
-from app.core.limits import image_job_stats
+from app.core.limits import image_job_stats, process_stats
 from app.engine.normalize import normalization_cache_stats
 from app.engine.service import knowledge_version
 from app.engine.types import MIN_IDENTITY_CONFIDENCE
@@ -103,7 +103,74 @@ def metrics(_: CurrentAdmin, db: DB, hours: Annotated[int, Query(ge=1, le=24 * 9
         "caches": {"normalization": normalization_cache_stats(), "open_food_facts": OFF_CACHE.stats()},
         "background_jobs": background_stats(),
         "image_jobs": image_job_stats(),
+        "process": process_stats(),
     }
+
+
+# ---- assessment trace lookup ----
+# For debugging a slow or failed check. Shows only technical data: kind, timing, processing stages,
+# knowledge version, outcome counts and the types of source used. Never the customer, what they
+# checked, the ingredients, or which allergens were checked (that would reveal their allergy profile).
+
+
+class TraceSummaryOut(BaseModel):
+    id: int
+    kind: str
+    created_at: datetime
+    duration_ms: int | None
+    knowledge_version: int
+    stages: int
+    failed_stages: list[str]
+
+
+class TraceOut(TraceSummaryOut):
+    outcome_counts: dict[str, int]
+    source_types: list[dict]
+    trace: list[dict]
+
+
+def _summary(a: Assessment) -> dict:
+    trace = a.trace or []
+    return {"id": a.id, "kind": a.kind, "created_at": a.created_at, "duration_ms": a.duration_ms,
+            "knowledge_version": a.knowledge_version, "stages": len(trace),
+            "failed_stages": [st.get("name", "") for st in trace if st.get("status") == "failed"]}
+
+
+@router.get("/assessments", response_model=list[TraceSummaryOut])
+def list_traces(
+    _: CurrentAdmin, db: DB,
+    kind: Annotated[str | None, Query(pattern="^(packaged|restaurant|text)$")] = None,
+    min_duration_ms: Annotated[int | None, Query(ge=0)] = None,
+    failed_only: bool = False,
+    hours: Annotated[int, Query(ge=1, le=24 * 90)] = 24,
+    sort: Annotated[str, Query(pattern="^(recent|slowest)$")] = "recent",
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[dict]:
+    """Recent assessments for debugging: filter by kind, minimum duration or failed stages."""
+    q = select(Assessment).where(Assessment.created_at >= utcnow() - timedelta(hours=hours))
+    if kind:
+        q = q.where(Assessment.kind == kind)
+    if min_duration_ms is not None:
+        q = q.where(Assessment.duration_ms >= min_duration_ms)
+    q = q.order_by(Assessment.duration_ms.desc().nulls_last() if sort == "slowest" else Assessment.created_at.desc())
+    rows = [_summary(a) for a in db.scalars(q.limit(limit * 5 if failed_only else limit))]
+    if failed_only:
+        rows = [r for r in rows if r["failed_stages"]][:limit]
+    return rows
+
+
+@router.get("/assessments/{assessment_id}", response_model=TraceOut)
+def get_trace(assessment_id: int, admin: CurrentAdmin, db: DB) -> dict:
+    a = db.get(Assessment, assessment_id)
+    if a is None:
+        raise HTTPException(404, "Assessment not found.")
+    admin_audit(db, admin, "assessment.trace_viewed", "assessment", a.id, {})
+    return {**_summary(a),
+            "outcome_counts": dict(Counter((a.outcomes or {}).values())),
+            "source_types": [{"type": s.get("type"), "verification": s.get("verification"),
+                              "fresh": s.get("fresh"), "completeness": s.get("completeness"),
+                              "used_for_absence": s.get("used_for_absence")} for s in a.sources or []],
+            "trace": a.trace or []}
 
 
 class AdminAuditOut(BaseModel):

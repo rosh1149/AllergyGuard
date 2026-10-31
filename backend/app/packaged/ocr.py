@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from dataclasses import dataclass
 
@@ -12,6 +13,12 @@ from app.core.config import get_settings
 from app.packaged.images import prepare_for_ocr
 
 log = logging.getLogger(__name__)
+
+# Tesseract parallelises one page with OpenMP. When several photos are read at once those threads
+# compete for the same cores: measured on 4 cores, two concurrent jobs took 38 s each instead of
+# 1.1 s. One thread per Tesseract process lets the photo-job limit (one job per core) do the
+# parallelism instead (docs/PERFORMANCE.md).
+os.environ.setdefault("OMP_THREAD_LIMIT", "1")
 
 
 @dataclass

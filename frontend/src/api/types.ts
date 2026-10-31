@@ -472,7 +472,32 @@ export interface Metrics {
   knowledge_version: number;
   caches: Record<string, { hits: number; misses: number; hit_rate?: number | null; items?: number }>;
   background_jobs: Record<string, number | string>;
-  image_jobs: Record<string, number>;
+  image_jobs: {
+    jobs: number; running: number; rejected_busy: number; max_concurrent: number;
+    duration_ms: { p50: number | null; p95: number | null; recent: number };
+    wait_ms: { p50: number | null; p95: number | null };
+  };
+  process?: {
+    cpu_count: number | null; cpu_seconds: number; cpu_seconds_ocr_processes: number;
+    cpu_average_share: number | null; load_average: number[] | null;
+    memory_rss_mb: number | null; memory_peak_rss_mb: number; threads: number; uptime_s: number;
+  };
+}
+
+export interface TraceSummary {
+  id: number;
+  kind: string;
+  created_at: string;
+  duration_ms: number | null;
+  knowledge_version: number;
+  stages: number;
+  failed_stages: string[];
+}
+
+export interface TraceDetail extends TraceSummary {
+  outcome_counts: Record<string, number>;
+  source_types: { type: string; verification: string; fresh: boolean | null; completeness: string | null; used_for_absence: boolean | null }[];
+  trace: StageRecord[];
 }
 
 export interface ManufacturerSite {

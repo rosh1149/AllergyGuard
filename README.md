@@ -53,7 +53,10 @@ cd backend
 pytest -q
 ```
 
-Uses the `allergyguard_test` database (override with `TEST_DATABASE_URL`). It is dropped and recreated.
+Uses the `allergyguard_test` database (override with `TEST_DATABASE_URL`). Its schema is dropped and
+recreated, so the tests refuse to run against a database whose name does not end in `_test`. The
+migration tests also create a scratch database `allergyguard_mig_test` (skipped without permission).
+`docs/TEST_MATRIX.md` maps every requirement to the tests that cover it.
 
 Frontend type check and build: `cd frontend && npm run build`. A Playwright browser walkthrough of the
 main journeys is in `frontend/e2e/walkthrough.cjs` (instructions at the top of the file).
@@ -299,7 +302,7 @@ photo-job usage.
   labelled with its date. Freshness rules still apply.
 - Queue bookkeeping (unresolved ingredients, review queue) runs after the response on a small thread
   pool (`BACKGROUND_INLINE=true` runs it immediately, as the tests do).
-- At most `MAX_CONCURRENT_IMAGE_JOBS` photo-processing jobs run at once.
+- At most `MAX_CONCURRENT_IMAGE_JOBS` photo-processing jobs run at once (default 0 = one per CPU core).
 
 **Security re-check.** See [SECURITY.md](SECURITY.md). Step E adds:
 - an automated tenant-isolation sweep over every dashboard route
@@ -325,6 +328,27 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 ```bash
 cd backend && python -m app.evaluation
 ```
+
+## Stage 5: engineering maturity
+
+- **Follow-up knowledge fixes** from the held-out error analysis: bread, breadcrumbs (panko, rusk),
+  pasta and noodles now link to wheat (and possibly egg); rice noodles, lemongrass, "maize starch" and
+  "egg plant" are known; the OCR corrector reads q as g ("eqq" → egg). New development cases cover
+  each fix; the spent held-out set was not reused.
+- **Database migrations** with Alembic (`docs/MIGRATIONS.md`): run at startup in one transaction,
+  every migration rolls back, and databases created before Alembic are adopted without data loss.
+- **Security validation** (`SECURITY.md`, `backend/tests/test_security.py`): staff and manager
+  permissions swept across every dashboard route; expired, forged and unsigned tokens; non-image,
+  oversized and decompression-bomb uploads; nothing private without signing in; no personal data in logs.
+- **Photo processing** (`docs/PERFORMANCE.md`): measuring found that concurrent Tesseract runs
+  starved each other (38 s per photo with two at once). Limiting Tesseract to one thread per job fixed
+  it: 4 concurrent photos now process at 2.6 photos/s with 1.3 s median latency. A separate photo
+  worker was not needed. Admin metrics now show CPU, memory and photo-job timings.
+- **Source failures**: unavailable sources are retried with exponential backoff, and a per-source
+  circuit breaker stops calling a failing source for a cool-down period (`SOURCE_*` settings).
+- **Check traces** for administrators (`/admin/traces`, `GET /api/admin/assessments`): timing and
+  processing stages of recent checks, with no customer, ingredients or allergens shown.
+- **Test matrix**: `docs/TEST_MATRIX.md`.
 
 ## Stage 4: research experiments
 

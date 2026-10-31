@@ -1,8 +1,8 @@
 import { Fragment, useEffect, useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { api } from "../../api/client";
-import type { AuditEntry, ManufacturerSite, Metrics, SourceAdapterInfo, UnresolvedIngredient } from "../../api/types";
-import { RULE_LABELS } from "../../components/ResultView";
+import type { AuditEntry, ManufacturerSite, Metrics, SourceAdapterInfo, TraceDetail, TraceSummary, UnresolvedIngredient } from "../../api/types";
+import { RULE_LABELS, TraceView } from "../../components/ResultView";
 import { ReviewQueue } from "../../components/ReviewQueue";
 import { ErrorAlert, formatDate, OUTCOME_LABELS, Spinner } from "../../components/ui";
 import type { Outcome } from "../../api/types";
@@ -17,6 +17,7 @@ export function AdminLayout() {
         <NavLink to="/admin/unresolved">Unidentified ingredients</NavLink>
         <NavLink to="/admin/sources">Data sources</NavLink>
         <NavLink to="/admin/manufacturers">Manufacturer sites</NavLink>
+        <NavLink to="/admin/traces">Check traces</NavLink>
         <NavLink to="/admin/audit">Audit log</NavLink>
       </nav>
       <main><Outlet /></main>
@@ -110,6 +111,13 @@ export function MonitoringPage() {
               ))}
               <span>Background jobs</span><span>{m.background_jobs.completed} done, {m.background_jobs.failed} failed, {m.background_jobs.pending} pending ({String(m.background_jobs.mode).replace("_", " ")})</span>
               <span>Photo jobs</span><span>{m.image_jobs.running} running of {m.image_jobs.max_concurrent} · {m.image_jobs.rejected_busy} turned away (busy)</span>
+              <span>Photo job time</span><span>{ms(m.image_jobs.duration_ms?.p50)} median · {ms(m.image_jobs.duration_ms?.p95)} P95 · waiting {ms(m.image_jobs.wait_ms?.p95)} P95</span>
+              {m.process && (
+                <>
+                  <span>Server CPU</span><span>{m.process.cpu_seconds} s (OCR {m.process.cpu_seconds_ocr_processes} s) · average {pct(m.process.cpu_average_share)} of one core · {m.process.cpu_count} cores{m.process.load_average ? ` · load ${m.process.load_average.join(" / ")}` : ""}</span>
+                  <span>Server memory</span><span>{m.process.memory_rss_mb ?? "?"} MB now · {m.process.memory_peak_rss_mb} MB peak · {m.process.threads} threads</span>
+                </>
+              )}
             </div>
           </section>
         </>
@@ -296,6 +304,101 @@ export function ManufacturerSitesPage() {
             <tr key={r.id}><td>{r.brand}</td><td>{r.domain}</td><td><small>{r.product_url_template || "–"}</small></td>
               <td><small className="muted">{r.note}</small></td><td><button className="small danger" onClick={() => remove(r.id)}>Remove</button></td></tr>
           ))}</tbody>
+        </table></div>
+      )}
+    </div>
+  );
+}
+
+function ms(v: number | null | undefined): string {
+  return v == null ? "–" : v >= 1000 ? `${(v / 1000).toFixed(1)} s` : `${v} ms`;
+}
+
+const OUTCOME_KEYS = ["PRESENT", "POSSIBLE_CROSS_CONTACT", "UNKNOWN", "NOT_LISTED_IN_VERIFIED_RECORDS"] as const;
+
+export function TracesPage() {
+  const [kind, setKind] = useState("");
+  const [sort, setSort] = useState("recent");
+  const [failedOnly, setFailedOnly] = useState(false);
+  const [rows, setRows] = useState<TraceSummary[] | null>(null);
+  const [open, setOpen] = useState<TraceDetail | null>(null);
+  const [lookupId, setLookupId] = useState("");
+  const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    const q = new URLSearchParams({ sort, limit: "50", hours: "168" });
+    if (kind) q.set("kind", kind);
+    if (failedOnly) q.set("failed_only", "true");
+    setRows(null);
+    api<TraceSummary[]>(`/admin/assessments?${q}`).then(setRows).catch(setError);
+  }, [kind, sort, failedOnly]);
+
+  const show = (id: number | string) => {
+    setError(null);
+    api<TraceDetail>(`/admin/assessments/${id}`).then(setOpen).catch(setError);
+  };
+
+  return (
+    <div>
+      <h1>Check traces</h1>
+      <p className="muted">
+        Technical details of recent checks, for finding slow or failing stages. They show timing, processing stages, the
+        knowledge version and the kinds of source used: never who ran the check, what was checked, or which allergens.
+        Opening a trace is recorded in the audit log.
+      </p>
+      <ErrorAlert error={error} />
+      <div className="card row" style={{ gap: "0.8rem", flexWrap: "wrap", alignItems: "end" }}>
+        <label>Kind{" "}
+          <select value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="">All</option><option value="packaged">Packaged food</option>
+            <option value="restaurant">Restaurant dish</option><option value="text">Typed ingredients</option>
+          </select>
+        </label>
+        <label>Order{" "}
+          <select value={sort} onChange={(e) => setSort(e.target.value)}>
+            <option value="recent">Most recent</option><option value="slowest">Slowest</option>
+          </select>
+        </label>
+        <label><input type="checkbox" checked={failedOnly} onChange={(e) => setFailedOnly(e.target.checked)} /> Only with a failed stage</label>
+        <form onSubmit={(e) => { e.preventDefault(); if (lookupId.trim()) show(lookupId.trim()); }} className="row" style={{ gap: "0.4rem" }}>
+          <input aria-label="Check number" placeholder="Check #" value={lookupId} onChange={(e) => setLookupId(e.target.value)} style={{ width: "7rem" }} inputMode="numeric" />
+          <button type="submit" className="secondary">Open</button>
+        </form>
+      </div>
+
+      {open && (
+        <section className="card" aria-label={`Trace ${open.id}`}>
+          <div className="row" style={{ justifyContent: "space-between" }}>
+            <h2>Check #{open.id} <small className="muted">· {open.kind} · {formatDate(open.created_at)}</small></h2>
+            <button className="secondary" onClick={() => setOpen(null)}>Close</button>
+          </div>
+          <div className="kv">
+            <span>Total time</span><span>{ms(open.duration_ms)}</span>
+            <span>Outcomes</span><span>{OUTCOME_KEYS.filter((k) => open.outcome_counts[k]).map((k) => `${OUTCOME_LABELS[k as Outcome]}: ${open.outcome_counts[k]}`).join(" · ") || "–"}</span>
+            <span>Sources</span><span>{open.source_types.map((s) => `${s.type.replace(/_/g, " ")} (${s.verification}${s.used_for_absence ? ", used for absence" : ""}${s.fresh === false ? ", outdated" : ""})`).join(" · ") || "none"}</span>
+          </div>
+          <TraceView trace={open.trace} duration={open.duration_ms} knowledgeVersion={open.knowledge_version} />
+        </section>
+      )}
+
+      {!rows && !error && <Spinner />}
+      {rows?.length === 0 && <p className="muted">No checks match.</p>}
+      {rows && rows.length > 0 && (
+        <div className="table-wrap card"><table>
+          <thead><tr><th>#</th><th>When</th><th>Kind</th><th>Time</th><th>Stages</th><th>Failed</th><th /></tr></thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.id}>
+                <td>{r.id}</td>
+                <td><small>{formatDate(r.created_at)}</small></td>
+                <td>{r.kind}</td>
+                <td>{ms(r.duration_ms)}</td>
+                <td>{r.stages}</td>
+                <td>{r.failed_stages.length ? <span className="badge o-PRESENT">{r.failed_stages.join(", ").replace(/_/g, " ")}</span> : ""}</td>
+                <td><button className="secondary" onClick={() => show(r.id)}>Open</button></td>
+              </tr>
+            ))}
+          </tbody>
         </table></div>
       )}
     </div>
