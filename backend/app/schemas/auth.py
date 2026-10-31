@@ -80,6 +80,8 @@ class AllergenOut(BaseModel):
     code: str
     name: str
     description: str
+    # Jurisdictions whose allergen-labelling rules list this allergen (EU, US, IN).
+    regulated_in: list[str] = []
 
 
 class AllergyProfileOut(BaseModel):

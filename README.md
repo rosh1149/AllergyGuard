@@ -12,6 +12,7 @@ evidence and uncertainty; it never certifies food as safe.
 | 3 | Packaged-food pipeline | Done |
 | 4 | Restaurant pipeline, fallback, feedback workflow, dashboard API | Done |
 | 5 | React + TypeScript frontend | Done |
+| A | Ingredient knowledge layer: concepts, FoodOn ids, relationship reasoning, allergen hierarchy, regional lists, versioned maintenance, unresolved queue | Done |
 
 ## Run
 
@@ -62,6 +63,10 @@ main journeys is in `frontend/e2e/walkthrough.cjs` (instructions at the top of t
 |---|---|---|
 | Customer (allergies: milk, peanuts) | customer@demo.allergyguard.app | Demo1234! |
 | Restaurant owner (Spice Route Kitchen) | owner@demo.allergyguard.app | Demo1234! |
+| Knowledge administrator (proposes changes) | admin@demo.allergyguard.app | Demo1234! |
+| Knowledge reviewer (approves changes) | reviewer@demo.allergyguard.app | Demo1234! |
+
+Create real administrators with `python -m app.cli create-admin --email you@example.com` (in `backend/`).
 
 ## Key design rules implemented so far
 
@@ -115,6 +120,39 @@ allergens first, other allergens found listed separately).
 (`claude-opus-5-5` by default, low effort, server-side refusal fallback enabled) rewrites it from the
 structured result only. Its output is rejected, and the template used instead, if it omits one of the
 user's allergens or makes a safety claim ("safe to eat", "allergen-free", "no risk", ...).
+
+## Ingredient knowledge layer (Step A)
+
+The allergen terms of Part 2 are now complemented by a knowledge layer of **ingredient concepts**
+(`backend/app/seed/concept_data.py`; 184 concepts, 500+ aliases, 130+ relationships):
+
+- **Typed relationships**: `derived_from`, `is_source_of`, `is_a`, `contains_component`,
+  `associated_with_allergen`, each `definite` or `possible`. Findings carry the chain that explains
+  them, e.g. *sodium caseinate, derived from casein, is a milk protein, derived from milk*.
+  A **possible** link (lecithin may come from soy or egg) gives UNKNOWN, never PRESENT. A recognised
+  concept overrides a look-alike term (cocoa butter is not milk), and look-alike exclusions also apply
+  to concepts (cream of tartar is not milk).
+- **FoodOn ids** (93 concepts): attached only where the concept's own name equals the label of exactly
+  one FoodOn class, checked against the class's parents (FoodOn commit `cd73540`, 2026-09-20).
+  Reproduce with `backend/scripts/map_foodon.py`; `app/seed/foodon_mappings.json` records the release,
+  each class's parents, alias-only candidates for review, and excluded matches with reasons (FoodOn's
+  "kiwi" is the bird).
+- **Allergen hierarchy**: wheat is a separate allergen (US major allergen) under cereals containing
+  gluten. Wheat implies gluten; barley implies gluten but not wheat; "contains gluten" without a named
+  source leaves wheat as a possibility.
+- **Regional lists** kept apart from the science: EU (Regulation 1169/2011 Annex II), US (FALCPA as
+  amended by the FASTER Act), India (FSSAI Labelling and Display Regulations 2020, marked
+  **unverified** because the official text could not be retrieved when it was entered). Each allergen
+  result says where it is regulated; `GET /api/allergens?jurisdiction=US` filters the sign-up list.
+- **Ingredient breakdown** in every result (`ingredients`): `allergen_linked`, `possible_allergen`,
+  `ambiguous_source`, `no_known_allergen` or `unresolved`, with concept, FoodOn id and chain.
+  Unresolved text is listed as a limitation and queued for review (text and source type only).
+- **Versioned maintenance**: changes are proposals (`/api/knowledge/proposals`) approved by a second
+  administrator. Approval re-runs the knowledge regression cases (`app/seed/kb_regression.py`) on the
+  changed knowledge before publishing; a failing change is not published. Each approval creates a new
+  knowledge version with a change-log entry, and every result reports the `knowledge_version` it used.
+- Endpoints: `POST /api/knowledge/resolve` (any signed-in user), `GET /api/knowledge/regulatory`, and for
+  administrators `summary`, `concepts`, `concepts/{slug}`, `proposals`, `changes`, `unresolved`.
 
 ## Packaged-food pipeline (Part 3)
 

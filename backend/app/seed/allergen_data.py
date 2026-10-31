@@ -1,6 +1,7 @@
 """Allergen knowledge base seed data.
 
-Covers the 14 major allergens (EU FIC Annex II, which also covers the US "Big 9").
+Covers the 14 major allergens of EU FIC Annex II, plus wheat as its own category (a US major allergen;
+a cereal containing gluten under EU rules). The hierarchy wheat -> gluten lives in concept_data.
 Terms are lower-case. `synonyms` indicate the allergen; `exclusions` are look-alike terms that
 must NOT trigger it (e.g. "nutmeg" is not a tree nut). Matching rules live in the engine (Part 2).
 """
@@ -49,6 +50,23 @@ ALLERGENS: list[dict] = [
             ("lupin flour", "Not a gluten cereal (but is lupin)."),
             ("buckwheat flour", "Buckwheat is not a gluten cereal."),
             ("buckwheat noodles", "Check: soba often also contains wheat."),
+        ],
+    },
+    {
+        "code": "wheat",
+        "name": "Wheat",
+        "description": "Wheat and wheat species (durum, spelt, khorasan, einkorn, emmer). Listed separately in the US; "
+        "a cereal containing gluten under EU and Indian rules.",
+        "synonyms": [
+            "wheat", "wheat flour", "whole wheat", "wholemeal", "spelt", "khorasan", "kamut", "durum", "semolina",
+            "bulgur", "couscous", "seitan", "farina", "graham flour", "einkorn", "emmer", "atta", "maida", "sooji",
+            "rava", "wheat starch", "hydrolysed wheat protein", "wheat gluten", "wheat bran", "wheat germ",
+            "cracked wheat",
+        ],
+        "exclusions": [
+            ("buckwheat", "Buckwheat is not wheat."),
+            ("buckwheat flour", "Buckwheat is not wheat."),
+            ("wheat-free", "Declared wheat-free."),
         ],
     },
     {

@@ -140,10 +140,29 @@ class EvidenceRef(BaseModel):
     source_id: str
     source_name: str
     source_type: SourceType
-    kind: str  # presence | declared | cross_contact | candidate | claim
+    # presence | declared | cross_contact | candidate | candidate_cross_contact | possible_source | claim
+    kind: str
     ingredient: str = ""
     matched_term: str = ""
     detail: str = ""
+    concept: str = ""  # ingredient concept slug, when the finding came through the knowledge layer
+    relationship_path: str = ""  # e.g. "sodium caseinate, derived from casein, is a milk protein, ..."
+    certainty: str = ""  # definite | possible (concept relationships)
+
+
+class IngredientResolution(BaseModel):
+    """How one ingredient item was understood by the knowledge base."""
+
+    source_id: str
+    text: str
+    # allergen_linked | possible_allergen | ambiguous_source | no_known_allergen | unresolved
+    status: str
+    concept: str | None = None
+    concept_name: str = ""
+    foodon_id: str | None = None
+    allergens: list[str] = Field(default_factory=list)
+    possible_allergens: list[str] = Field(default_factory=list)
+    relationship_path: str = ""
 
 
 class AllergenAssessment(BaseModel):
@@ -154,6 +173,8 @@ class AllergenAssessment(BaseModel):
     outcome_label: str
     reasons: list[str]
     evidence: list[EvidenceRef] = Field(default_factory=list)
+    # Jurisdictions whose allergen-labelling rules list this allergen (regulatory, not scientific).
+    regulated_in: list[str] = Field(default_factory=list)
 
 
 class Conflict(BaseModel):
@@ -186,6 +207,8 @@ class AnalysisResult(BaseModel):
     conflicts: list[Conflict]
     limitations: list[str]
     nonspecific_ingredients: list[str]
+    ingredients: list[IngredientResolution] = Field(default_factory=list)
+    knowledge_version: int = 0
     explanation: str = ""
     explanation_source: str = "template"  # template | llm
     disclaimer: str = (

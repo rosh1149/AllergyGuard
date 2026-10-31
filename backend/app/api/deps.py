@@ -48,6 +48,15 @@ def require_customer(user: CurrentUser) -> User:
 CurrentCustomer = Annotated[User, Depends(require_customer)]
 
 
+def require_admin(user: CurrentUser) -> User:
+    if user.role != UserRole.admin:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Knowledge administrator account required.")
+    return user
+
+
+CurrentAdmin = Annotated[User, Depends(require_admin)]
+
+
 class RestaurantAccess:
     """Dependency enforcing that the current user belongs to the restaurant in the URL path.
 

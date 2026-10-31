@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     llm_model: str = ""
 
+    # Knowledge base changes need a second person to approve (four-eyes). Set false only for a
+    # single-administrator deployment.
+    knowledge_require_second_reviewer: bool = True
+
     # Packaged-food pipeline
     off_base_url: str = "https://world.openfoodfacts.org"
     off_user_agent: str = "AllergyGuard/0.1 (allergen information app)"

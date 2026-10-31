@@ -1,5 +1,24 @@
 from app.models.allergen import Allergen, AllergenTerm, AllergenTermKind
 from app.models.feedback import AuditRecord, FeedbackSuggestion, SuggestionStatus, SuggestionType
+from app.models.knowledge import (
+    ACTIVE_STATUSES,
+    AllergenParent,
+    Certainty,
+    ConceptAlias,
+    ConceptRelation,
+    IngredientConcept,
+    KnowledgeChange,
+    KnowledgeProposal,
+    KnowledgeStatus,
+    KnowledgeVersion,
+    ProposalKind,
+    ProposalStatus,
+    RegulatoryEntry,
+    RegulatoryList,
+    RelationType,
+    UnresolvedIngredient,
+    UnresolvedStatus,
+)
 from app.models.restaurant import (
     AllergenRecord,
     Branch,
@@ -17,7 +36,24 @@ from app.models.restaurant import (
 from app.models.user import CustomerAllergy, CustomerCustomAllergy, User, UserRole
 
 __all__ = [
+    "ACTIVE_STATUSES",
     "Allergen",
+    "AllergenParent",
+    "Certainty",
+    "ConceptAlias",
+    "ConceptRelation",
+    "IngredientConcept",
+    "KnowledgeChange",
+    "KnowledgeProposal",
+    "KnowledgeStatus",
+    "KnowledgeVersion",
+    "ProposalKind",
+    "ProposalStatus",
+    "RegulatoryEntry",
+    "RegulatoryList",
+    "RelationType",
+    "UnresolvedIngredient",
+    "UnresolvedStatus",
     "AllergenRecord",
     "AllergenTerm",
     "AllergenTermKind",

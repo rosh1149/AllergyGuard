@@ -32,6 +32,8 @@ log = logging.getLogger(__name__)
 DEMO_PASSWORD = "Demo1234!"
 DEMO_OWNER_EMAIL = "owner@demo.allergyguard.app"
 DEMO_CUSTOMER_EMAIL = "customer@demo.allergyguard.app"
+# Two knowledge administrators, so the four-eyes approval of knowledge changes can be demonstrated.
+DEMO_ADMIN_EMAILS = ("admin@demo.allergyguard.app", "reviewer@demo.allergyguard.app")
 
 
 def seed_allergens(db: Session) -> None:
@@ -100,8 +102,19 @@ def _recipe(
         )
 
 
+def _seed_demo_admins(db: Session) -> list[User]:
+    admins = []
+    for email, name in zip(DEMO_ADMIN_EMAILS, ("Knowledge Admin", "Knowledge Reviewer")):
+        if not db.scalar(select(User.id).where(User.email == email)):
+            admins.append(User(email=email, password_hash=hash_password(DEMO_PASSWORD), full_name=name, role=UserRole.admin))
+    db.add_all(admins)
+    return admins
+
+
 def seed_demo(db: Session) -> None:
     if db.scalar(select(User).where(User.email == DEMO_OWNER_EMAIL)):
+        if _seed_demo_admins(db):  # databases created before the knowledge administrators existed
+            db.commit()
         return
     allergens = {a.code: a for a in db.scalars(select(Allergen)).all()}
 
@@ -118,6 +131,7 @@ def seed_demo(db: Session) -> None:
         role=UserRole.customer,
     )
     db.add_all([owner, customer])
+    _seed_demo_admins(db)
     db.flush()
     for code in ("milk", "peanuts"):
         db.add(CustomerAllergy(user_id=customer.id, allergen_id=allergens[code].id))

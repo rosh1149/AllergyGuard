@@ -1,0 +1,854 @@
+{
+ "excluded": {
+  "kiwi": {
+   "foodon_id": "FOODON:03414363",
+   "reason": "FoodOn 'kiwi' is the bird (parent: ratite), not the fruit"
+  },
+  "lamb": {
+   "foodon_id": "FOODON:03411669",
+   "reason": "FoodOn 'lamb' is the animal (parent: sheep), not lamb meat"
+  },
+  "praline": {
+   "foodon_id": "FOODON:03301758",
+   "reason": "FoodOn 'praline' is a pecan candy; this concept is the almond/hazelnut confection"
+  }
+ },
+ "foodon_commit": "cd73540243a84bcd511a500d9a497d12d7dc02f6",
+ "foodon_date": "2026-09-20",
+ "mappings": {
+  "almond": {
+   "foodon_id": "FOODON:00003523",
+   "foodon_label": "almond",
+   "foodon_parents": [
+    "almond food product",
+    "drupe fruit"
+   ]
+  },
+  "almond_milk": {
+   "foodon_id": "FOODON:00003157",
+   "foodon_label": "almond milk",
+   "foodon_parents": [
+    "almond food product"
+   ]
+  },
+  "anchovy": {
+   "foodon_id": "FOODON:03316282",
+   "foodon_label": "anchovy",
+   "foodon_parents": [
+    "anchovy food product"
+   ]
+  },
+  "apple": {
+   "foodon_id": "FOODON:00002473",
+   "foodon_label": "apple",
+   "foodon_parents": [
+    "apple (whole or pieces)",
+    "pome fruit"
+   ]
+  },
+  "banana": {
+   "foodon_id": "FOODON:00004183",
+   "foodon_label": "banana",
+   "foodon_parents": [
+    "banana food product",
+    "berry fruit",
+    "tropical fruit"
+   ]
+  },
+  "bell_pepper": {
+   "foodon_id": "FOODON:00003546",
+   "foodon_label": "bell pepper",
+   "foodon_parents": [
+    "bell pepper food product",
+    "serrano pepper"
+   ]
+  },
+  "bulgur": {
+   "foodon_id": "FOODON:00003143",
+   "foodon_label": "bulgur",
+   "foodon_parents": [
+    "wheat cereal food product"
+   ]
+  },
+  "butter": {
+   "foodon_id": "FOODON:03310351",
+   "foodon_label": "butter",
+   "foodon_parents": [
+    "cow milk butter food product"
+   ]
+  },
+  "casein": {
+   "foodon_id": "FOODON:03420180",
+   "foodon_label": "casein",
+   "foodon_parents": [
+    "protein extract, concentrate or isolate"
+   ]
+  },
+  "cheese": {
+   "foodon_id": "FOODON:03000287",
+   "foodon_label": "cheese",
+   "foodon_parents": [
+    "cheese food product"
+   ]
+  },
+  "chicken": {
+   "foodon_id": "FOODON:03411457",
+   "foodon_label": "chicken",
+   "foodon_parents": [
+    "chicken meat food product",
+    "poultry"
+   ]
+  },
+  "chickpea": {
+   "foodon_id": "FOODON:03306811",
+   "foodon_label": "chickpea",
+   "foodon_parents": [
+    "bean",
+    "chickpea food product"
+   ]
+  },
+  "chocolate": {
+   "foodon_id": "FOODON:03307240",
+   "foodon_label": "chocolate",
+   "foodon_parents": [
+    "chocolate food product"
+   ]
+  },
+  "cinnamon": {
+   "foodon_id": "FOODON:03301175",
+   "foodon_label": "cinnamon",
+   "foodon_parents": [
+    "cinnamon food product"
+   ]
+  },
+  "clam": {
+   "foodon_id": "FOODON:03411331",
+   "foodon_label": "clam",
+   "foodon_parents": [
+    "bivalve",
+    "clam food product"
+   ]
+  },
+  "cocoa": {
+   "foodon_id": "FOODON:03301072",
+   "foodon_label": "cocoa",
+   "foodon_parents": [
+    "cocoa food product"
+   ]
+  },
+  "cocoa_butter": {
+   "foodon_id": "FOODON:03301332",
+   "foodon_label": "cocoa butter",
+   "foodon_parents": [
+    "cocoa food product"
+   ]
+  },
+  "coconut": {
+   "foodon_id": "FOODON:00003449",
+   "foodon_label": "coconut",
+   "foodon_parents": [
+    "coconut (whole or pieces)",
+    "drupe fruit"
+   ]
+  },
+  "coconut_milk": {
+   "foodon_id": "FOODON:03303084",
+   "foodon_label": "coconut milk",
+   "foodon_parents": [
+    "coconut (whole or pieces)"
+   ]
+  },
+  "coconut_oil": {
+   "foodon_id": "FOODON:03310046",
+   "foodon_label": "coconut oil",
+   "foodon_parents": [
+    "coconut food product",
+    "plant lipid food product"
+   ]
+  },
+  "cod": {
+   "foodon_id": "FOODON:03411423",
+   "foodon_label": "cod",
+   "foodon_parents": [
+    "cod family"
+   ]
+  },
+  "coriander": {
+   "foodon_id": "FOODON:03310370",
+   "foodon_label": "coriander",
+   "foodon_parents": [
+    "coriander food product"
+   ]
+  },
+  "crab": {
+   "foodon_id": "FOODON:02021446",
+   "foodon_label": "crab",
+   "foodon_parents": [
+    "decapod"
+   ]
+  },
+  "crustacean": {
+   "foodon_id": "FOODON:03411374",
+   "foodon_label": "crustacean",
+   "foodon_parents": [
+    "shellfish"
+   ]
+  },
+  "edamame": {
+   "foodon_id": "FOODON:00002809",
+   "foodon_label": "edamame",
+   "foodon_parents": [
+    "soybean (whole or pieces)"
+   ]
+  },
+  "eggplant": {
+   "foodon_id": "FOODON:00003618",
+   "foodon_label": "eggplant",
+   "foodon_parents": [
+    "berry fruit",
+    "eggplant food product"
+   ]
+  },
+  "fish": {
+   "foodon_id": "FOODON:03411222",
+   "foodon_label": "fish",
+   "foodon_parents": [
+    "fish or lower water animal",
+    "vertebrate animal"
+   ]
+  },
+  "fish_sauce": {
+   "foodon_id": "FOODON:03317197",
+   "foodon_label": "fish sauce",
+   "foodon_parents": [
+    "sauce"
+   ]
+  },
+  "flour": {
+   "foodon_id": "FOODON:00004510",
+   "foodon_label": "flour",
+   "foodon_parents": [
+    "flour food product"
+   ]
+  },
+  "ghee": {
+   "foodon_id": "FOODON:03310185",
+   "foodon_label": "ghee",
+   "foodon_parents": [
+    "cow whey food product"
+   ]
+  },
+  "guar_gum": {
+   "foodon_id": "FOODON:03413114",
+   "foodon_label": "guar gum",
+   "foodon_parents": [
+    "food additive",
+    "guar plant food product"
+   ]
+  },
+  "hazelnut": {
+   "foodon_id": "FOODON:00002933",
+   "foodon_label": "hazelnut",
+   "foodon_parents": [
+    "hazelnut food product"
+   ]
+  },
+  "hummus": {
+   "foodon_id": "FOODON:00003049",
+   "foodon_label": "hummus",
+   "foodon_parents": [
+    "chickpea food product"
+   ]
+  },
+  "khoa": {
+   "foodon_id": "FOODON:03309824",
+   "foodon_label": "khoa",
+   "foodon_parents": [
+    "cow whey food product"
+   ]
+  },
+  "lemon": {
+   "foodon_id": "FOODON:03315104",
+   "foodon_label": "lemon",
+   "foodon_parents": [
+    "citrus fruit",
+    "lemon (whole or pieces)"
+   ]
+  },
+  "lentil": {
+   "foodon_id": "FOODON:03310641",
+   "foodon_label": "lentil",
+   "foodon_parents": [
+    "legume",
+    "lentil food product"
+   ]
+  },
+  "lobster": {
+   "foodon_id": "FOODON:03411505",
+   "foodon_label": "lobster",
+   "foodon_parents": [
+    "decapod"
+   ]
+  },
+  "lysozyme": {
+   "foodon_id": "FOODON:03413135",
+   "foodon_label": "lysozyme",
+   "foodon_parents": [
+    "food additive"
+   ]
+  },
+  "mackerel": {
+   "foodon_id": "FOODON:03411043",
+   "foodon_label": "mackerel",
+   "foodon_parents": [
+    "mackerel family"
+   ]
+  },
+  "marzipan": {
+   "foodon_id": "FOODON:03315555",
+   "foodon_label": "marzipan",
+   "foodon_parents": [
+    "almond candy food product"
+   ]
+  },
+  "mayonnaise": {
+   "foodon_id": "FOODON:03301440",
+   "foodon_label": "mayonnaise",
+   "foodon_parents": [
+    "mayonnaise food product"
+   ]
+  },
+  "milk_chocolate": {
+   "foodon_id": "FOODON:03302806",
+   "foodon_label": "milk chocolate",
+   "foodon_parents": [
+    "chocolate candy food product"
+   ]
+  },
+  "miso": {
+   "foodon_id": "FOODON:00003208",
+   "foodon_label": "miso",
+   "foodon_parents": [
+    "miso food product"
+   ]
+  },
+  "mollusc": {
+   "foodon_id": "FOODON:03412112",
+   "foodon_label": "mollusc",
+   "foodon_parents": [
+    "shellfish"
+   ]
+  },
+  "mussel": {
+   "foodon_id": "FOODON:03411223",
+   "foodon_label": "mussel",
+   "foodon_parents": [
+    "bivalve",
+    "mussel food product"
+   ]
+  },
+  "mustard_greens": {
+   "foodon_id": "FOODON:00002684",
+   "foodon_label": "mustard greens",
+   "foodon_parents": [
+    "mustard food product",
+    "plant leaf food product"
+   ]
+  },
+  "mustard_oil": {
+   "foodon_id": "FOODON:03301152",
+   "foodon_label": "mustard oil",
+   "foodon_parents": [
+    "mustard seed food product",
+    "seed oil"
+   ]
+  },
+  "oat_milk": {
+   "foodon_id": "FOODON:00004515",
+   "foodon_label": "oat milk",
+   "foodon_parents": [
+    "oat food product",
+    "plant derived beverage"
+   ]
+  },
+  "octopus": {
+   "foodon_id": "FOODON:03411514",
+   "foodon_label": "octopus",
+   "foodon_parents": [
+    "cephalopod"
+   ]
+  },
+  "olive_oil": {
+   "foodon_id": "FOODON:03301826",
+   "foodon_label": "olive oil",
+   "foodon_parents": [
+    "olive fat or oil refined food product"
+   ]
+  },
+  "onion": {
+   "foodon_id": "FOODON:03316347",
+   "foodon_label": "onion",
+   "foodon_parents": [
+    "bulb",
+    "onion food product"
+   ]
+  },
+  "oyster": {
+   "foodon_id": "FOODON:03411224",
+   "foodon_label": "oyster",
+   "foodon_parents": [
+    "bivalve",
+    "oyster food product"
+   ]
+  },
+  "oyster_sauce": {
+   "foodon_id": "FOODON:03317654",
+   "foodon_label": "oyster sauce",
+   "foodon_parents": [
+    "sauce"
+   ]
+  },
+  "palm_oil": {
+   "foodon_id": "FOODON:03310232",
+   "foodon_label": "palm oil",
+   "foodon_parents": [
+    "palm fat or oil refined food product"
+   ]
+  },
+  "paneer": {
+   "foodon_id": "FOODON:03601045",
+   "foodon_label": "paneer",
+   "foodon_parents": [
+    "uncured cheese food product"
+   ]
+  },
+  "pea": {
+   "foodon_id": "FOODON:03301300",
+   "foodon_label": "pea",
+   "foodon_parents": [
+    "legume",
+    "pea food product"
+   ]
+  },
+  "peanut": {
+   "foodon_id": "FOODON:00003206",
+   "foodon_label": "peanut",
+   "foodon_parents": [
+    "legume",
+    "peanut food product"
+   ]
+  },
+  "peanut_butter": {
+   "foodon_id": "FOODON:03306867",
+   "foodon_label": "peanut butter",
+   "foodon_parents": [
+    "peanut (whole or pieces)"
+   ]
+  },
+  "peanut_oil": {
+   "foodon_id": "FOODON:03309857",
+   "foodon_label": "peanut oil",
+   "foodon_parents": [
+    "peanut fat or oil refined food product",
+    "seed oil"
+   ]
+  },
+  "pecan": {
+   "foodon_id": "FOODON:00003699",
+   "foodon_label": "pecan",
+   "foodon_parents": [
+    "hickory nut",
+    "pecan nut food product"
+   ]
+  },
+  "pomfret": {
+   "foodon_id": "FOODON:03412571",
+   "foodon_label": "pomfret",
+   "foodon_parents": [
+    "pomfret family"
+   ]
+  },
+  "potato": {
+   "foodon_id": "FOODON:03315354",
+   "foodon_label": "potato",
+   "foodon_parents": [
+    "potato food product",
+    "shoot axis tuber"
+   ]
+  },
+  "potato_starch": {
+   "foodon_id": "FOODON:03307543",
+   "foodon_label": "potato starch",
+   "foodon_parents": [
+    "potato (whole or pieces)"
+   ]
+  },
+  "rapeseed_oil": {
+   "foodon_id": "FOODON:03310482",
+   "foodon_label": "rapeseed oil",
+   "foodon_parents": [
+    "rape fat or oil refined food product",
+    "seed oil"
+   ]
+  },
+  "rice": {
+   "foodon_id": "FOODON:00004327",
+   "foodon_label": "rice",
+   "foodon_parents": [
+    "rice kernel food product"
+   ]
+  },
+  "salmon": {
+   "foodon_id": "FOODON:00003473",
+   "foodon_label": "salmon",
+   "foodon_parents": [
+    "salmon food product"
+   ]
+  },
+  "sardine": {
+   "foodon_id": "FOODON:03411558",
+   "foodon_label": "sardine",
+   "foodon_parents": [
+    "herring family"
+   ]
+  },
+  "scallop": {
+   "foodon_id": "FOODON:02020805",
+   "foodon_label": "scallop",
+   "foodon_parents": [
+    "bivalve",
+    "scallop food product"
+   ]
+  },
+  "seasoning": {
+   "foodon_id": "FOODON:03301189",
+   "foodon_label": "seasoning",
+   "foodon_parents": [
+    "food seasoning product"
+   ]
+  },
+  "sesame_oil": {
+   "foodon_id": "FOODON:03304152",
+   "foodon_label": "sesame oil",
+   "foodon_parents": [
+    "seed oil",
+    "sesame food product"
+   ]
+  },
+  "shrimp": {
+   "foodon_id": "FOODON:03411237",
+   "foodon_label": "shrimp",
+   "foodon_parents": [
+    "decapod"
+   ]
+  },
+  "shrimp_paste": {
+   "foodon_id": "FOODON:03309823",
+   "foodon_label": "shrimp paste",
+   "foodon_parents": [
+    "fermented fish or seafood food product",
+    "shrimp food product"
+   ]
+  },
+  "sodium_caseinate": {
+   "foodon_id": "FOODON:03317011",
+   "foodon_label": "sodium caseinate",
+   "foodon_parents": [
+    "casein"
+   ]
+  },
+  "soy_protein": {
+   "foodon_id": "FOODON:03310368",
+   "foodon_label": "soy protein",
+   "foodon_parents": [
+    "soybean refined food product"
+   ]
+  },
+  "soy_sauce": {
+   "foodon_id": "FOODON:03301115",
+   "foodon_label": "soy sauce",
+   "foodon_parents": [
+    "condiment sauce"
+   ]
+  },
+  "soybean": {
+   "foodon_id": "FOODON:03301415",
+   "foodon_label": "soybean",
+   "foodon_parents": [
+    "bean",
+    "soybean food product"
+   ]
+  },
+  "soybean_oil": {
+   "foodon_id": "FOODON:03302776",
+   "foodon_label": "soybean oil",
+   "foodon_parents": [
+    "plant seed food product",
+    "seed oil",
+    "soybean refined food product"
+   ]
+  },
+  "squid": {
+   "foodon_id": "FOODON:03411205",
+   "foodon_label": "squid",
+   "foodon_parents": [
+    "cephalopod"
+   ]
+  },
+  "sugar": {
+   "foodon_id": "FOODON:03420108",
+   "foodon_label": "sugar",
+   "foodon_parents": [
+    "carbohydrate extract, concentrate, or isolate"
+   ]
+  },
+  "tahini": {
+   "foodon_id": "FOODON:00003855",
+   "foodon_label": "tahini",
+   "foodon_parents": [
+    "condiment food product"
+   ]
+  },
+  "tapioca": {
+   "foodon_id": "FOODON:03307663",
+   "foodon_label": "tapioca",
+   "foodon_parents": [
+    "starch refined food product"
+   ]
+  },
+  "tempeh": {
+   "foodon_id": "FOODON:03304999",
+   "foodon_label": "tempeh",
+   "foodon_parents": [
+    "tempeh food product"
+   ]
+  },
+  "tofu": {
+   "foodon_id": "FOODON:00004697",
+   "foodon_label": "tofu",
+   "foodon_parents": [
+    "tofu food product"
+   ]
+  },
+  "tomato": {
+   "foodon_id": "FOODON:03301453",
+   "foodon_label": "tomato",
+   "foodon_parents": [
+    "berry fruit",
+    "tomato food product"
+   ]
+  },
+  "tree_nut": {
+   "foodon_id": "FOODON:03301354",
+   "foodon_label": "tree nut",
+   "foodon_parents": [
+    "nut food product"
+   ]
+  },
+  "tuna": {
+   "foodon_id": "FOODON:03411269",
+   "foodon_label": "tuna",
+   "foodon_parents": [
+    "mackerel family"
+   ]
+  },
+  "vegetable_oil": {
+   "foodon_id": "FOODON:03305263",
+   "foodon_label": "vegetable oil",
+   "foodon_parents": [
+    "plant fat or oil refined food product",
+    "vegetable oil food product"
+   ]
+  },
+  "walnut": {
+   "foodon_id": "FOODON:03301364",
+   "foodon_label": "walnut",
+   "foodon_parents": [
+    "drupe fruit",
+    "walnut food product"
+   ]
+  },
+  "water_chestnut": {
+   "foodon_id": "FOODON:00003571",
+   "foodon_label": "water chestnut",
+   "foodon_parents": [
+    "tuber",
+    "water chestnut food product"
+   ]
+  },
+  "wheat_starch": {
+   "foodon_id": "FOODON:03310075",
+   "foodon_label": "wheat starch",
+   "foodon_parents": [
+    "wheat refined food product"
+   ]
+  },
+  "worcestershire_sauce": {
+   "foodon_id": "FOODON:03305003",
+   "foodon_label": "worcestershire sauce",
+   "foodon_parents": [
+    "condiment sauce",
+    "sugar condiment"
+   ]
+  },
+  "xanthan_gum": {
+   "foodon_id": "FOODON:03413321",
+   "foodon_label": "xanthan gum",
+   "foodon_parents": [
+    "food additive"
+   ]
+  },
+  "yeast": {
+   "foodon_id": "FOODON:03411345",
+   "foodon_label": "yeast",
+   "foodon_parents": [
+    "organism by alternate grouping"
+   ]
+  }
+ },
+ "match_rule": "concept name equals the label of exactly one FOODON class",
+ "review_candidates": {
+  "almond_flour": {
+   "almond meal": [
+    "FOODON_00003919"
+   ]
+  },
+  "barley": {
+   "barley flour": [
+    "FOODON_03309657"
+   ]
+  },
+  "black_pepper": {
+   "pepper": [
+    "FOODON_00003520"
+   ]
+  },
+  "buckwheat": {
+   "buckwheat flour": [
+    "FOODON_03309980"
+   ]
+  },
+  "cashew": {
+   "cashew nut": [
+    "FOODON_00003615"
+   ]
+  },
+  "celery": {
+   "celery salt": [
+    "FOODON_03304738"
+   ]
+  },
+  "condensed_milk": {
+   "evaporated milk": [
+    "FOODON_03301505"
+   ]
+  },
+  "cream": {
+   "sour cream": [
+    "FOODON_03302515"
+   ]
+  },
+  "egg": {
+   "chicken egg": [
+    "FOODON_03316061"
+   ]
+  },
+  "macadamia": {
+   "macadamia nut": [
+    "FOODON_00003003"
+   ]
+  },
+  "maize": {
+   "corn flour": [
+    "FOODON_03302500"
+   ]
+  },
+  "malt": {
+   "barley malt": [
+    "FOODON_03306040"
+   ],
+   "malt extract": [
+    "FOODON_03301056"
+   ]
+  },
+  "milk": {
+   "cow milk": [
+    "FOODON_02020891"
+   ],
+   "milk fat": [
+    "FOODON_00002681"
+   ]
+  },
+  "millet": {
+   "jowar": [
+    "FOODON_03310286"
+   ]
+  },
+  "mustard": {
+   "mustard powder": [
+    "FOODON_03306359"
+   ],
+   "mustard seed": [
+    "FOODON_00003420"
+   ]
+  },
+  "oats": {
+   "oat": [
+    "FOODON_00003429"
+   ],
+   "oat flakes": [
+    "FOODON_03306272"
+   ],
+   "oat flour": [
+    "FOODON_03301312"
+   ],
+   "rolled oats": [
+    "FOODON_03307110"
+   ]
+  },
+  "raising_agent": {
+   "leavening agent": [
+    "FOODON_00003186"
+   ]
+  },
+  "rye": {
+   "rye flour": [
+    "FOODON_03302492"
+   ]
+  },
+  "salt": {
+   "table salt": [
+    "FOODON_03309954"
+   ]
+  },
+  "seitan": {
+   "wheat gluten": [
+    "FOODON_03310809"
+   ]
+  },
+  "sesame": {
+   "sesame seed": [
+    "FOODON_03310306"
+   ]
+  },
+  "spices": {
+   "spice": [
+    "FOODON_03306052"
+   ]
+  },
+  "sulphite": {
+   "potassium metabisulphite": [
+    "FOODON_03413215"
+   ]
+  },
+  "wheat_flour": {
+   "white wheat flour": [
+    "FOODON_03302339"
+   ],
+   "whole wheat flour": [
+    "FOODON_03302340"
+   ]
+  }
+ },
+ "source": "FoodOn foodon-synonyms.tsv"
+}

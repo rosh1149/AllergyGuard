@@ -3,7 +3,8 @@
 Rules (per allergen, first match wins):
   1. Any presence evidence from an authoritative source whose identity is trusted -> PRESENT
   2. Any cross-contact evidence (declared or "may contain")                         -> POSSIBLE_CROSS_CONTACT
-  3. Presence evidence only from candidate/untrusted sources                         -> UNKNOWN
+  3. Presence evidence only from candidate/untrusted sources, or only through a
+     "possible" source relationship (lecithin may come from soy)                     -> UNKNOWN
   4. A "free-from" claim is the only thing mentioning it                             -> UNKNOWN
   5. At least one complete, reliable, verified ingredient source and no
      ingredient-list mismatch between such sources                                   -> NOT_LISTED_IN_VERIFIED_RECORDS
@@ -11,6 +12,11 @@ Rules (per allergen, first match wins):
 
 Missing evidence never produces a "safe" outcome; NOT_LISTED only means "not found in the
 verified records that were available".
+
+Ingredient items are resolved through the knowledge base (allergen terms + concept relationships), so
+a finding can carry the chain that explains it (sodium caseinate, derived from casein, ... milk).
+The allergen hierarchy then applies: a child allergen (wheat) implies its parent (cereals containing
+gluten); a parent indicated without its specific source leaves each child as a possibility.
 """
 
 from __future__ import annotations
@@ -19,7 +25,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from itertools import combinations
 
-from app.engine.knowledge import KnowledgeBase, custom_match
+from app.engine.knowledge import ItemResolution, KnowledgeBase, custom_match
 from app.engine.text import (
     free_from_claims,
     is_nonspecific,
@@ -43,6 +49,7 @@ from app.engine.types import (
     Conflict,
     EvidenceRef,
     EvidenceSource,
+    IngredientResolution,
     Outcome,
     SourceSummary,
     SourceType,
@@ -60,6 +67,7 @@ class _Prepared:
     absence_ok: bool
     absence_reason: str = ""
     present_codes: set[str] = field(default_factory=set)
+    resolutions: list[ItemResolution] = field(default_factory=list)
 
 
 def _prepare(src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
@@ -99,7 +107,16 @@ def _prepare(src: EvidenceSource, ctx: AnalysisContext) -> _Prepared:
     return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason)
 
 
-def _ref(p: _Prepared, kind: str, ingredient: str = "", term: str = "", detail: str = "") -> EvidenceRef:
+def _ref(
+    p: _Prepared,
+    kind: str,
+    ingredient: str = "",
+    term: str = "",
+    detail: str = "",
+    concept: str = "",
+    path: str = "",
+    certainty: str = "",
+) -> EvidenceRef:
     return EvidenceRef(
         source_id=p.src.id,
         source_name=p.src.name,
@@ -108,6 +125,9 @@ def _ref(p: _Prepared, kind: str, ingredient: str = "", term: str = "", detail: 
         ingredient=ingredient,
         matched_term=term,
         detail=detail,
+        concept=concept,
+        relationship_path=path,
+        certainty=certainty,
     )
 
 
@@ -117,6 +137,8 @@ def _collect(
     """Evidence per allergen key ("<code>" or "custom:<term>"), plus non-specific ingredients."""
     ev: dict[str, list[EvidenceRef]] = defaultdict(list)
     nonspecific: list[str] = []
+    # A custom allergy naming a known concept ("almond") also matches what derives from it (marzipan).
+    custom_concepts = {t: kb.alias_to_concept[t] for t in custom_terms if t in kb.alias_to_concept}
 
     for p in prepared:
         presence_kind = "presence" if p.trusted else "candidate"
@@ -127,19 +149,42 @@ def _collect(
                 claim_codes |= kb.codes_in(c)
             for code in claim_codes:
                 ev[code].append(_ref(p, "claim", item, detail=f"'{item}' claims to be free of it"))
-            for m in kb.match(item):
-                if m.allergen_code in claim_codes:
+
+            res = kb.resolve_item(item, nonspecific=is_nonspecific(item))
+            p.resolutions.append(res)
+            definite: set[str] = set()
+            for cm, path in res.paths:
+                code = path.allergen_code
+                if code in claim_codes or code not in kb.allergens:
                     continue
+                if path.certainty == "definite":
+                    if code in definite:
+                        continue
+                    definite.add(code)
+                    ev[code].append(_ref(p, presence_kind, item, cm.alias, concept=cm.slug, path=path.text, certainty="definite"))
+                    if p.trusted:
+                        p.present_codes.add(code)
+                else:
+                    ev[code].append(_ref(p, "possible_source", item, cm.alias, concept=cm.slug, path=path.text, certainty="possible"))
+            for m in res.terms:
+                if m.allergen_code in claim_codes or m.allergen_code in definite:
+                    continue
+                definite.add(m.allergen_code)
                 ev[m.allergen_code].append(_ref(p, presence_kind, item, m.term))
                 if p.trusted:
                     p.present_codes.add(m.allergen_code)
+
             for term in custom_terms:
                 key = f"custom:{term}"
+                via = next((cm for cm in res.concepts if term in custom_concepts and kb.concept_reaches(cm.slug, custom_concepts[term])), None)
                 if any(term in c for c in claims):
                     ev[key].append(_ref(p, "claim", item, detail=f"'{item}' claims to be free of it"))
                 elif custom_match(term, item):
                     ev[key].append(_ref(p, presence_kind, item, term))
-            if is_nonspecific(item) and item not in nonspecific:
+                elif via:
+                    ev[key].append(_ref(p, presence_kind, item, via.alias, concept=via.slug,
+                                        path=f"{kb.concepts[via.slug].name}, made from or containing {term}"))
+            if res.status == "ambiguous_source" and item not in nonspecific:
                 nonspecific.append(item)
 
         for code in p.src.declared_allergens or []:
@@ -159,7 +204,34 @@ def _collect(
             for term in custom_terms:
                 if custom_match(term, stmt):
                     ev[f"custom:{term}"].append(_ref(p, cc_kind, detail=stmt))
+
+    _apply_hierarchy(kb, ev)
     return ev, nonspecific
+
+
+def _apply_hierarchy(kb: KnowledgeBase, ev: dict[str, list[EvidenceRef]]) -> None:
+    """Child allergen evidence implies the parent; a parent named without its source makes each child possible."""
+    for child, parents in kb.parents.items():
+        for parent in parents:
+            if child not in kb.allergens or parent not in kb.allergens:
+                continue
+            have = {(r.source_id, r.ingredient, r.kind) for r in ev.get(parent, [])}
+            for r in list(ev.get(child, [])):
+                if r.kind in ("presence", "declared", "candidate", "cross_contact", "candidate_cross_contact") and (r.source_id, r.ingredient, r.kind) not in have:
+                    ev[parent].append(r.model_copy(update={
+                        "relationship_path": (r.relationship_path + ", " if r.relationship_path else "")
+                        + f"{kb.name(child)} is one of the {kb.name(parent).lower()}",
+                    }))
+            child_keys = {(r.source_id, r.ingredient) for r in ev.get(child, [])}
+            for r in list(ev.get(parent, [])):
+                unspecific = r.kind == "declared" or (r.kind == "presence" and not r.concept)
+                if unspecific and (r.source_id, r.ingredient) not in child_keys:
+                    ev[child].append(r.model_copy(update={
+                        "kind": "possible_source",
+                        "certainty": "possible",
+                        "relationship_path": f"{kb.name(parent)} indicated without naming the source; it may be {kb.name(child).lower()}",
+                    }))
+                    child_keys.add((r.source_id, r.ingredient))
 
 
 def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared]) -> tuple[list[Conflict], bool]:
@@ -169,7 +241,9 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared]) -> tuple[list[Confl
     for p in prepared:
         if p.src.declared_allergens is None or not p.trusted:
             continue
-        from_items = {m.allergen_code for i in p.items for m in kb.match(i)}
+        from_items = {m.allergen_code for r in p.resolutions for m in r.terms}
+        from_items |= {path.allergen_code for r in p.resolutions for _, path in r.paths if path.certainty == "definite"}
+        from_items &= set(kb.allergens)
         for code in sorted(from_items - set(p.src.declared_allergens)):
             conflicts.append(
                 Conflict(
@@ -233,6 +307,8 @@ def _decide(
         for r in present:
             if r.kind == "declared":
                 reasons.append(f"{name} is declared as an allergen ({where(r)}).")
+            elif r.relationship_path:
+                reasons.append(f"Ingredient '{r.ingredient}' indicates {name}: {r.relationship_path} ({where(r)}).")
             else:
                 reasons.append(f"Ingredient '{r.ingredient}' indicates {name} ({where(r)}).")
         return Outcome.PRESENT, _dedupe(reasons)
@@ -254,11 +330,14 @@ def _decide(
             reasons.append(f"{text} ({where(r)}).{suffix}")
         return Outcome.POSSIBLE_CROSS_CONTACT, _dedupe(reasons)
 
-    if by_kind["candidate"]:
+    if by_kind["candidate"] or by_kind["possible_source"]:
         reasons = [
             f"'{r.ingredient or r.detail}' suggests {name} may be present, but the source is not verified "
             f"or may not match this item ({where(r)})."
             for r in by_kind["candidate"]
+        ] + [
+            f"'{r.ingredient or r.detail}' may contain {name}: {r.relationship_path}. The source is not stated ({where(r)})."
+            for r in by_kind["possible_source"]
         ]
         return Outcome.UNKNOWN, _dedupe(reasons)
 
@@ -315,6 +394,7 @@ def assess(
             outcome_label=outcome.label,
             reasons=reasons,
             evidence=evidence.get(code, []),
+            regulated_in=kb.regulated_in(code),
         )
     for term in custom_terms:
         key = f"custom:{term}"
@@ -367,6 +447,11 @@ def assess(
         limitations.append(
             "Some ingredients are general terms whose components are not listed: " + ", ".join(nonspecific) + "."
         )
+    unresolved = _dedupe([r.text for p in prepared for r in p.resolutions if r.status == "unresolved"])
+    if unresolved:
+        limitations.append(
+            "Not recognised by the ingredient knowledge base (checked by name only): " + ", ".join(unresolved) + "."
+        )
     if not sources:
         limitations.append("No ingredient information was available.")
 
@@ -397,4 +482,24 @@ def assess(
         conflicts=conflicts,
         limitations=_dedupe(limitations),
         nonspecific_ingredients=nonspecific,
+        ingredients=[_resolution_out(kb, p, r) for p in prepared for r in p.resolutions],
+        knowledge_version=kb.version,
+    )
+
+
+def _resolution_out(kb: KnowledgeBase, p: _Prepared, r: ItemResolution) -> IngredientResolution:
+    concept = kb.concepts.get(r.concepts[0].slug) if r.concepts else None
+    definite = [path for _, path in r.paths if path.certainty == "definite"]
+    possible = [path for _, path in r.paths if path.certainty == "possible"]
+    allergens = _dedupe([path.allergen_code for path in definite] + [t.allergen_code for t in r.terms])
+    return IngredientResolution(
+        source_id=p.src.id,
+        text=r.text,
+        status=r.status,
+        concept=concept.slug if concept else None,
+        concept_name=concept.name if concept else "",
+        foodon_id=concept.foodon_id if concept else None,
+        allergens=[a for a in allergens if a in kb.allergens],
+        possible_allergens=_dedupe([path.allergen_code for path in possible if path.allergen_code not in allergens]),
+        relationship_path=(definite or possible)[0].text if (definite or possible) else "",
     )

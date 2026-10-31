@@ -23,7 +23,7 @@ def test_health(client):
 
 def test_allergen_knowledge_base_seeded(client):
     codes = {a["code"] for a in client.get("/api/allergens").json()}
-    assert len(codes) == 14
+    assert len(codes) == 15  # EU Annex II's 14 + wheat (US major allergen)
     assert {"milk", "peanuts", "tree_nuts", "gluten", "sesame", "sulphites"} <= codes
 
 

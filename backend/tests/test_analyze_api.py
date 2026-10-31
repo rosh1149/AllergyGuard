@@ -24,7 +24,7 @@ def test_analyze_text_uses_saved_profile(client):
         "milk": "PRESENT",
         "peanuts": "POSSIBLE_CROSS_CONTACT",
     }
-    assert {a["code"] for a in body["other_allergens"]} == {"gluten"}
+    assert {a["code"] for a in body["other_allergens"]} == {"gluten", "wheat"}
     assert body["explanation"] and body["explanation_source"] in ("template", "llm")
     assert "not medical advice" in body["disclaimer"]
 

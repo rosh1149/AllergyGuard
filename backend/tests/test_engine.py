@@ -13,8 +13,7 @@ from app.engine import (
     assess,
 )
 from app.engine.explain import _acceptable, template_explanation
-from app.engine.knowledge import AllergenInfo
-from app.seed.allergen_data import ALLERGENS
+from tests.kb_fixture import build_kb
 
 P, X, U, N = (
     Outcome.PRESENT,
@@ -26,11 +25,7 @@ P, X, U, N = (
 
 @pytest.fixture(scope="module")
 def kb():
-    return KnowledgeBase(
-        [AllergenInfo(a["code"], a["name"]) for a in ALLERGENS],
-        [(t, a["code"]) for a in ALLERGENS for t in a["synonyms"]],
-        [(t, a["code"]) for a in ALLERGENS for t, _ in a["exclusions"]],
-    )
+    return build_kb()
 
 
 def label(text, **kw):
@@ -52,7 +47,7 @@ def outcomes(kb, sources, codes, custom=(), ctx=None):
         ("sodium caseinate", {"milk"}),
         ("ghee", {"milk"}),
         ("paneer", {"milk"}),
-        ("semolina", {"gluten"}),
+        ("semolina", {"gluten", "wheat"}),
         ("tahini", {"sesame"}),
         ("peanut butter", {"peanuts"}),  # not milk
         ("cocoa butter", set()),  # not milk
@@ -62,7 +57,7 @@ def outcomes(kb, sources, codes, custom=(), ctx=None):
         ("eggplant", set()),
         ("buckwheat", set()),
         ("rice flour", set()),
-        ("wheat flour", {"gluten"}),
+        ("wheat flour", {"gluten", "wheat"}),
         ("butternut squash", set()),
         ("oyster mushrooms", set()),
         ("oyster sauce", {"molluscs"}),
@@ -233,7 +228,7 @@ def test_custom_allergy(kb):
 def test_other_allergens_are_reported_separately(kb):
     _, r = outcomes(kb, [label("wheat flour, egg, sesame seeds")], {"milk"})
     assert [a.code for a in r.your_allergens] == ["milk"]
-    assert {a.code for a in r.other_allergens} == {"gluten", "eggs", "sesame"}
+    assert {a.code for a in r.other_allergens} == {"gluten", "wheat", "eggs", "sesame"}
 
 
 def test_overall_is_most_severe(kb):

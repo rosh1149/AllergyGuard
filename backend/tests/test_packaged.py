@@ -157,7 +157,7 @@ def test_label_photo_only(client, customer, off):
     # Demo customer: milk + peanuts. Label has butter (milk) and "may contain hazelnuts" (not peanuts).
     assert mine(body) == {"milk": "PRESENT", "peanuts": "NOT_LISTED_IN_VERIFIED_RECORDS"}
     assert body["label"]["heading_found"] and body["label"]["confidence"] > 0.6
-    assert {a["code"] for a in body["result"]["other_allergens"]} == {"gluten", "tree_nuts"}
+    assert {a["code"] for a in body["result"]["other_allergens"]} == {"gluten", "wheat", "tree_nuts"}
     assert body["product"] is None
 
 
