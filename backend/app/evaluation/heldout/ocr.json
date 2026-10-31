@@ -1,0 +1,154 @@
+{
+ "description": "Ingredient text read from photos with OCR misreads -> allergens truly carried / not carried.",
+ "version": 1,
+ "frozen": "2026-10-31",
+ "cases": [
+  {
+   "id": "H-O01",
+   "input": "s0ya lecithin",
+   "must": [
+    "soy"
+   ],
+   "must_not": [],
+   "justification": "0 read for o."
+  },
+  {
+   "id": "H-O02",
+   "input": "hazeinuts",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "i read for l."
+  },
+  {
+   "id": "H-O03",
+   "input": "a1monds",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "1 read for l."
+  },
+  {
+   "id": "H-O04",
+   "input": "whcat flour",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "c read for e."
+  },
+  {
+   "id": "H-O05",
+   "input": "sodium caseinatc",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "c read for e."
+  },
+  {
+   "id": "H-O06",
+   "input": "sesarne seeds",
+   "must": [
+    "sesame"
+   ],
+   "must_not": [],
+   "justification": "rn read for m."
+  },
+  {
+   "id": "H-O07",
+   "input": "rnilk powder",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "rn read for m."
+  },
+  {
+   "id": "H-O08",
+   "input": "butterrnilk",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "rn read for m."
+  },
+  {
+   "id": "H-O09",
+   "input": "ce1ery",
+   "must": [
+    "celery"
+   ],
+   "must_not": [],
+   "justification": "1 read for l."
+  },
+  {
+   "id": "H-O10",
+   "input": "glutcn",
+   "must": [
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "c read for e."
+  },
+  {
+   "id": "H-O11",
+   "input": "pcanut oil",
+   "must": [
+    "peanuts"
+   ],
+   "must_not": [],
+   "justification": "c read for e."
+  },
+  {
+   "id": "H-O12",
+   "input": "rnustard seeds",
+   "must": [
+    "mustard"
+   ],
+   "must_not": [],
+   "justification": "rn read for m."
+  },
+  {
+   "id": "H-O13",
+   "input": "egq white",
+   "must": [
+    "eggs"
+   ],
+   "must_not": [],
+   "justification": "q read for g (not a common confusion; must at least not be ruled out)."
+  },
+  {
+   "id": "H-O14",
+   "input": "suqar",
+   "must": [],
+   "must_not": [
+    "milk",
+    "eggs"
+   ],
+   "justification": "q read for g; harmless."
+  },
+  {
+   "id": "H-O15",
+   "input": "rnaize starch",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "rn read for m; maize is not a gluten cereal."
+  },
+  {
+   "id": "H-O16",
+   "input": "lirne juice",
+   "must": [],
+   "must_not": [
+    "milk"
+   ],
+   "justification": "rn read for m; lime."
+  }
+ ]
+}

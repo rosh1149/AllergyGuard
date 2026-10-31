@@ -1,0 +1,608 @@
+{
+ "description": "Ingredient -> allergens it truly carries (must) and tempting allergens it does not (must_not).",
+ "version": 1,
+ "frozen": "2026-10-31",
+ "cases": [
+  {
+   "id": "H-I01",
+   "input": "skimmed milk powder",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Dried skimmed cow's milk."
+  },
+  {
+   "id": "H-I02",
+   "input": "buttermilk",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Liquid left after churning butter; a milk product."
+  },
+  {
+   "id": "H-I03",
+   "input": "cream cheese",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Soft cheese made from milk and cream."
+  },
+  {
+   "id": "H-I04",
+   "input": "condensed milk",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Milk with water removed, usually sweetened."
+  },
+  {
+   "id": "H-I05",
+   "input": "lactalbumin",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "A whey protein of milk."
+  },
+  {
+   "id": "H-I06",
+   "input": "butterfat",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "The fat fraction of milk."
+  },
+  {
+   "id": "H-I07",
+   "input": "yoghurt powder",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Dried yoghurt; a fermented milk product."
+  },
+  {
+   "id": "H-I08",
+   "input": "casein hydrolysate",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Hydrolysed milk casein."
+  },
+  {
+   "id": "H-I09",
+   "input": "milk solids",
+   "must": [
+    "milk"
+   ],
+   "must_not": [],
+   "justification": "Non-water components of milk."
+  },
+  {
+   "id": "H-I10",
+   "input": "ovalbumin",
+   "must": [
+    "eggs"
+   ],
+   "must_not": [],
+   "justification": "The main protein of egg white."
+  },
+  {
+   "id": "H-I11",
+   "input": "egg yolk powder",
+   "must": [
+    "eggs"
+   ],
+   "must_not": [],
+   "justification": "Dried egg yolk."
+  },
+  {
+   "id": "H-I12",
+   "input": "dried whole egg",
+   "must": [
+    "eggs"
+   ],
+   "must_not": [],
+   "justification": "Dehydrated whole egg."
+  },
+  {
+   "id": "H-I13",
+   "input": "albumen powder",
+   "must": [
+    "eggs"
+   ],
+   "must_not": [],
+   "justification": "Dried egg white."
+  },
+  {
+   "id": "H-I14",
+   "input": "wholemeal wheat flour",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Flour milled from whole wheat grains."
+  },
+  {
+   "id": "H-I15",
+   "input": "spelt flour",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Spelt is a wheat species."
+  },
+  {
+   "id": "H-I16",
+   "input": "rye bread",
+   "must": [
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Rye is a gluten-containing cereal."
+  },
+  {
+   "id": "H-I17",
+   "input": "barley flakes",
+   "must": [
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Barley is a gluten-containing cereal."
+  },
+  {
+   "id": "H-I18",
+   "input": "bulgur wheat",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Parboiled cracked wheat."
+  },
+  {
+   "id": "H-I19",
+   "input": "farina",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Milled wheat (cream of wheat)."
+  },
+  {
+   "id": "H-I20",
+   "input": "wheat germ",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "The embryo of the wheat kernel."
+  },
+  {
+   "id": "H-I21",
+   "input": "breadcrumbs",
+   "must": [
+    "wheat",
+    "gluten"
+   ],
+   "must_not": [],
+   "justification": "Made from wheat bread unless stated otherwise."
+  },
+  {
+   "id": "H-I22",
+   "input": "teriyaki sauce",
+   "must": [
+    "soy"
+   ],
+   "must_not": [],
+   "justification": "Based on soy sauce."
+  },
+  {
+   "id": "H-I23",
+   "input": "soya flour",
+   "must": [
+    "soy"
+   ],
+   "must_not": [],
+   "justification": "Flour from soybeans."
+  },
+  {
+   "id": "H-I24",
+   "input": "soy protein isolate",
+   "must": [
+    "soy"
+   ],
+   "must_not": [],
+   "justification": "Protein extracted from soybeans."
+  },
+  {
+   "id": "H-I25",
+   "input": "textured vegetable protein",
+   "must": [
+    "soy"
+   ],
+   "must_not": [],
+   "justification": "Usually made from defatted soy flour."
+  },
+  {
+   "id": "H-I26",
+   "input": "peanut flour",
+   "must": [
+    "peanuts"
+   ],
+   "must_not": [],
+   "justification": "Ground defatted peanuts."
+  },
+  {
+   "id": "H-I27",
+   "input": "roasted peanuts",
+   "must": [
+    "peanuts"
+   ],
+   "must_not": [],
+   "justification": "Peanuts."
+  },
+  {
+   "id": "H-I28",
+   "input": "cashew nuts",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Cashew is a tree nut under EU/US rules."
+  },
+  {
+   "id": "H-I29",
+   "input": "pecan pieces",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Pecan is a tree nut."
+  },
+  {
+   "id": "H-I30",
+   "input": "macadamia nuts",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Macadamia is a tree nut."
+  },
+  {
+   "id": "H-I31",
+   "input": "hazelnut paste",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Ground hazelnuts."
+  },
+  {
+   "id": "H-I32",
+   "input": "walnut pieces",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Walnut is a tree nut."
+  },
+  {
+   "id": "H-I33",
+   "input": "pistachio kernels",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Pistachio is a tree nut."
+  },
+  {
+   "id": "H-I34",
+   "input": "brazil nuts",
+   "must": [
+    "tree_nuts"
+   ],
+   "must_not": [],
+   "justification": "Brazil nut is a tree nut."
+  },
+  {
+   "id": "H-I35",
+   "input": "sesame seed paste",
+   "must": [
+    "sesame"
+   ],
+   "must_not": [],
+   "justification": "Ground sesame seeds."
+  },
+  {
+   "id": "H-I36",
+   "input": "gingelly oil",
+   "must": [
+    "sesame"
+   ],
+   "must_not": [],
+   "justification": "Sesame oil (Indian English)."
+  },
+  {
+   "id": "H-I37",
+   "input": "til seeds",
+   "must": [
+    "sesame"
+   ],
+   "must_not": [],
+   "justification": "Sesame seeds (Hindi 'til')."
+  },
+  {
+   "id": "H-I38",
+   "input": "anchovy paste",
+   "must": [
+    "fish"
+   ],
+   "must_not": [],
+   "justification": "Made from anchovies."
+  },
+  {
+   "id": "H-I39",
+   "input": "tuna",
+   "must": [
+    "fish"
+   ],
+   "must_not": [],
+   "justification": "A fish."
+  },
+  {
+   "id": "H-I40",
+   "input": "cod liver oil",
+   "must": [
+    "fish"
+   ],
+   "must_not": [],
+   "justification": "Oil from cod livers."
+  },
+  {
+   "id": "H-I41",
+   "input": "shrimp powder",
+   "must": [
+    "crustaceans"
+   ],
+   "must_not": [],
+   "justification": "Dried ground shrimp."
+  },
+  {
+   "id": "H-I42",
+   "input": "crab meat",
+   "must": [
+    "crustaceans"
+   ],
+   "must_not": [],
+   "justification": "Crab is a crustacean."
+  },
+  {
+   "id": "H-I43",
+   "input": "prawn crackers",
+   "must": [
+    "crustaceans"
+   ],
+   "must_not": [],
+   "justification": "Made with prawn."
+  },
+  {
+   "id": "H-I44",
+   "input": "mussels",
+   "must": [
+    "molluscs"
+   ],
+   "must_not": [],
+   "justification": "Mussels are molluscs."
+  },
+  {
+   "id": "H-I45",
+   "input": "squid rings",
+   "must": [
+    "molluscs"
+   ],
+   "must_not": [],
+   "justification": "Squid is a mollusc."
+  },
+  {
+   "id": "H-I46",
+   "input": "octopus",
+   "must": [
+    "molluscs"
+   ],
+   "must_not": [],
+   "justification": "Octopus is a mollusc."
+  },
+  {
+   "id": "H-I47",
+   "input": "mustard flour",
+   "must": [
+    "mustard"
+   ],
+   "must_not": [],
+   "justification": "Ground mustard seed."
+  },
+  {
+   "id": "H-I48",
+   "input": "dijon mustard",
+   "must": [
+    "mustard"
+   ],
+   "must_not": [],
+   "justification": "Prepared mustard."
+  },
+  {
+   "id": "H-I49",
+   "input": "celery seed",
+   "must": [
+    "celery"
+   ],
+   "must_not": [],
+   "justification": "Seed of the celery plant."
+  },
+  {
+   "id": "H-I50",
+   "input": "celery powder",
+   "must": [
+    "celery"
+   ],
+   "must_not": [],
+   "justification": "Dried ground celery."
+  },
+  {
+   "id": "H-I51",
+   "input": "lupin seeds",
+   "must": [
+    "lupin"
+   ],
+   "must_not": [],
+   "justification": "Lupin."
+  },
+  {
+   "id": "H-I52",
+   "input": "sodium sulphite",
+   "must": [
+    "sulphites"
+   ],
+   "must_not": [],
+   "justification": "A sulphite preservative."
+  },
+  {
+   "id": "H-I53",
+   "input": "potassium metabisulphite",
+   "must": [
+    "sulphites"
+   ],
+   "must_not": [],
+   "justification": "A sulphite preservative (E224)."
+  },
+  {
+   "id": "H-I54",
+   "input": "potato starch",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "Starch extracted from potatoes."
+  },
+  {
+   "id": "H-I55",
+   "input": "cornstarch",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "Maize starch."
+  },
+  {
+   "id": "H-I56",
+   "input": "tapioca",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "Cassava starch."
+  },
+  {
+   "id": "H-I57",
+   "input": "chickpea flour",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten",
+    "peanuts"
+   ],
+   "justification": "Ground chickpeas; a legume, not a cereal or peanut."
+  },
+  {
+   "id": "H-I58",
+   "input": "coconut cream",
+   "must": [],
+   "must_not": [
+    "milk",
+    "tree_nuts"
+   ],
+   "justification": "Coconut is not a dairy product and not listed as a tree nut in the EU."
+  },
+  {
+   "id": "H-I59",
+   "input": "buckwheat flour",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "Buckwheat is a pseudo-cereal unrelated to wheat."
+  },
+  {
+   "id": "H-I60",
+   "input": "butternut squash",
+   "must": [],
+   "must_not": [
+    "milk",
+    "tree_nuts"
+   ],
+   "justification": "A vegetable despite its name."
+  },
+  {
+   "id": "H-I61",
+   "input": "rice flour",
+   "must": [],
+   "must_not": [
+    "wheat",
+    "gluten"
+   ],
+   "justification": "Ground rice."
+  },
+  {
+   "id": "H-I62",
+   "input": "sunflower oil",
+   "must": [],
+   "must_not": [
+    "peanuts",
+    "sesame"
+   ],
+   "justification": "Oil from sunflower seeds."
+  },
+  {
+   "id": "H-I63",
+   "input": "nutritional yeast",
+   "must": [],
+   "must_not": [
+    "tree_nuts"
+   ],
+   "justification": "Deactivated yeast."
+  },
+  {
+   "id": "H-I64",
+   "input": "cocoa mass",
+   "must": [],
+   "must_not": [
+    "milk"
+   ],
+   "justification": "Ground cocoa beans."
+  },
+  {
+   "id": "H-I65",
+   "input": "egg plant",
+   "must": [],
+   "must_not": [
+    "eggs"
+   ],
+   "justification": "Aubergine written as two words."
+  }
+ ]
+}

@@ -1,0 +1,10 @@
+{
+ "frozen": "2026-10-31",
+ "written_before": "Stage 1 knowledge-base changes",
+ "rule": "Do not edit these files or tune the engine on their results. Run once with --final at the evaluation stage.",
+ "sha256": {
+  "ingredients": "ca54f8624b2fc1057c181666593f5d804df00270d3904e8538ed5853f32beaef",
+  "ocr": "6f4d2b34b39fe689e98e9c3001e0e7e77f368e2d24f6881a0811dff8fd5bd2cc",
+  "scenarios": "33ac9728320b682118c86ce7bc5e778231ac2bdfb436ae783307d1705a7161f3"
+ }
+}

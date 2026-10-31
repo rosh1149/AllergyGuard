@@ -1,0 +1,769 @@
+{
+ "description": "End-to-end scenarios with ground truth per allergen: present, cross_contact, absent (complete verified evidence) or undeterminable.",
+ "version": 1,
+ "frozen": "2026-10-31",
+ "cases": [
+  {
+   "id": "H-S01",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "wheat flour, sugar, skimmed milk powder, salt"
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "wheat": "present",
+    "eggs": "absent"
+   },
+   "justification": "Complete label lists milk powder and wheat flour; no egg."
+  },
+  {
+   "id": "H-S02",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice noodles, tamari, ginger, spring onion"
+    }
+   ],
+   "truth": {
+    "soy": "present",
+    "wheat": "absent"
+   },
+   "justification": "Tamari is soy-based and normally wheat-free."
+  },
+  {
+   "id": "H-S03",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "oats, honey, almonds, sunflower oil"
+    }
+   ],
+   "truth": {
+    "tree_nuts": "present",
+    "peanuts": "absent"
+   },
+   "justification": "Almonds listed; no peanut."
+  },
+  {
+   "id": "H-S04",
+   "tags": [
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "potato, sunflower oil, salt, paprika"
+    }
+   ],
+   "truth": {
+    "milk": "absent",
+    "gluten": "absent",
+    "mustard": "absent"
+   },
+   "justification": "Plain crisps label, complete."
+  },
+  {
+   "id": "H-S05",
+   "tags": [
+    "compound",
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "cod, breadcrumbs (wheat flour, yeast, salt), rapeseed oil"
+    }
+   ],
+   "truth": {
+    "fish": "present",
+    "wheat": "present",
+    "gluten": "present"
+   },
+   "justification": "Breaded cod."
+  },
+  {
+   "id": "H-S06",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "chocolate (sugar, cocoa butter, whole milk powder, cocoa mass, emulsifier: soya lecithin), hazelnuts"
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "soy": "present",
+    "tree_nuts": "present"
+   },
+   "justification": "Milk chocolate with hazelnuts."
+  },
+  {
+   "id": "H-S07",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, lentils, turmeric, cumin, ghee"
+    }
+   ],
+   "truth": {
+    "milk": "present"
+   },
+   "justification": "Ghee is clarified butter."
+  },
+  {
+   "id": "H-S08",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "chickpeas, tahini, lemon juice, garlic, olive oil"
+    }
+   ],
+   "truth": {
+    "sesame": "present",
+    "peanuts": "absent"
+   },
+   "justification": "Hummus."
+  },
+  {
+   "id": "H-S09",
+   "tags": [
+    "direct",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "sugar, egg whites, ground almonds"
+    }
+   ],
+   "truth": {
+    "eggs": "present",
+    "tree_nuts": "present",
+    "milk": "absent"
+   },
+   "justification": "Macaron shells."
+  },
+  {
+   "id": "H-S10",
+   "tags": [
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "tomatoes, onion, garlic, basil, olive oil, salt"
+    }
+   ],
+   "truth": {
+    "milk": "absent",
+    "celery": "absent"
+   },
+   "justification": "Plain tomato sauce, complete label."
+  },
+  {
+   "id": "H-S11",
+   "tags": [
+    "compound",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "pasta (durum wheat semolina), water"
+    }
+   ],
+   "truth": {
+    "wheat": "present",
+    "gluten": "present",
+    "eggs": "absent"
+   },
+   "justification": "Dry pasta without egg."
+  },
+  {
+   "id": "H-S12",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, soy sauce (water, soybeans, wheat, salt), vegetables"
+    }
+   ],
+   "truth": {
+    "soy": "present",
+    "wheat": "present"
+   },
+   "justification": "Soy sauce with its components listed."
+  },
+  {
+   "id": "H-S13",
+   "tags": [
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "water, sugar, citric acid, flavouring"
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Flavouring components not listed; milk cannot be ruled out."
+  },
+  {
+   "id": "H-S14",
+   "tags": [
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, vegetable stock, carrots"
+    }
+   ],
+   "truth": {
+    "celery": "undeterminable"
+   },
+   "justification": "Stock commonly contains celery; components not listed."
+  },
+  {
+   "id": "H-S15",
+   "tags": [
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt",
+     "complete": false
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Source states the list is partial."
+  },
+  {
+   "id": "H-S16",
+   "tags": [
+    "ocr",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, sugar, salt",
+     "confidence": 0.35
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Unreadable photo."
+  },
+  {
+   "id": "H-S17",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, caseinatc, sugar"
+    }
+   ],
+   "truth": {
+    "milk": "present"
+   },
+   "justification": "Caseinate misread."
+  },
+  {
+   "id": "H-S18",
+   "tags": [
+    "ocr"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "sugar, hazeinuts, cocoa"
+    }
+   ],
+   "truth": {
+    "tree_nuts": "present"
+   },
+   "justification": "Hazelnuts misread."
+  },
+  {
+   "id": "H-S19",
+   "tags": [
+    "ocr",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, qwzx flakes, salt"
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable",
+    "gluten": "undeterminable"
+   },
+   "justification": "Unreadable ingredient blocks absence."
+  },
+  {
+   "id": "H-S20",
+   "tags": [
+    "cross_contact"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "oats, raisins, sugar",
+     "may_contain": "May contain traces of nuts and sesame."
+    }
+   ],
+   "truth": {
+    "tree_nuts": "cross_contact",
+    "sesame": "cross_contact"
+   },
+   "justification": "Precautionary statement."
+  },
+  {
+   "id": "H-S21",
+   "tags": [
+    "cross_contact",
+    "restaurant"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "potato",
+      "salt"
+     ],
+     "cross_contact": [
+      {
+       "allergen": "crustaceans",
+       "kind": "shared_fryer"
+      }
+     ]
+    }
+   ],
+   "truth": {
+    "crustaceans": "cross_contact",
+    "fish": "absent"
+   },
+   "justification": "Chips fried with prawn tempura."
+  },
+  {
+   "id": "H-S22",
+   "tags": [
+    "restaurant",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "chicken",
+      "yogurt",
+      "spices"
+     ]
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "mustard": "undeterminable"
+   },
+   "justification": "Yogurt marinade; spice mix not itemised."
+  },
+  {
+   "id": "H-S23",
+   "tags": [
+    "restaurant",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "paneer",
+      "spinach",
+      "cream",
+      "garlic"
+     ]
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "tree_nuts": "absent"
+   },
+   "justification": "Palak paneer, verified complete."
+  },
+  {
+   "id": "H-S24",
+   "tags": [
+    "restaurant",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "dal",
+      "salt"
+     ],
+     "age_days": 700
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Verified record is about two years old."
+  },
+  {
+   "id": "H-S25",
+   "tags": [
+    "restaurant",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_unverified",
+     "items": [
+      "rice",
+      "dal",
+      "salt"
+     ]
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Unverified record cannot rule out."
+  },
+  {
+   "id": "H-S26",
+   "tags": [
+    "restaurant",
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "restaurant_verified",
+     "items": [
+      "rice",
+      "dal",
+      "salt"
+     ]
+    },
+    {
+     "type": "customer_suggestion",
+     "complete": false,
+     "declared": [
+      "milk"
+     ]
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Customer reports milk; not yet confirmed."
+  },
+  {
+   "id": "H-S27",
+   "tags": [
+    "restaurant",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "public_recipe",
+     "items": [
+      "chickpeas",
+      "onion",
+      "tomato"
+     ],
+     "complete": false
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Public recipe only: not this restaurant."
+  },
+  {
+   "id": "H-S28",
+   "tags": [
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar, whey powder"
+    }
+   ],
+   "truth": {
+    "milk": "present"
+   },
+   "justification": "One source lists whey: the cautious finding must hold."
+  },
+  {
+   "id": "H-S29",
+   "tags": [
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar",
+     "declared": [
+      "sesame"
+     ]
+    }
+   ],
+   "truth": {
+    "sesame": "present"
+   },
+   "justification": "Database declares sesame."
+  },
+  {
+   "id": "H-S30",
+   "tags": [
+    "conflict"
+   ],
+   "sources": [
+    {
+     "type": "label_ocr",
+     "text": "rice, salt, sugar"
+    },
+    {
+     "type": "product_database",
+     "text": "wheat flour, butter, eggs, sugar"
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Lists describe different products.",
+   "context": {
+    "identity_confidence": 0.9
+   }
+  },
+  {
+   "id": "H-S31",
+   "tags": [
+    "identification",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar"
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "Database entry may belong to another product.",
+   "context": {
+    "identity_confidence": 0.45
+   }
+  },
+  {
+   "id": "H-S32",
+   "tags": [
+    "identification"
+   ],
+   "sources": [
+    {
+     "type": "product_database",
+     "text": "wheat flour, sugar, butter"
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "gluten": "present"
+   },
+   "justification": "Even an uncertain match must not hide listed allergens.",
+   "context": {
+    "identity_confidence": 0.45
+   }
+  },
+  {
+   "id": "H-S33",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "sugar, cocoa butter, cocoa mass"
+    }
+   ],
+   "truth": {
+    "milk": "absent"
+   },
+   "justification": "Cocoa butter is not dairy."
+  },
+  {
+   "id": "H-S34",
+   "tags": [
+    "derived",
+    "negative"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "coconut milk, rice, lemongrass"
+    }
+   ],
+   "truth": {
+    "milk": "absent",
+    "tree_nuts": "absent"
+   },
+   "justification": "Coconut milk is not dairy and coconut is not an EU tree nut."
+  },
+  {
+   "id": "H-S35",
+   "tags": [
+    "derived",
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "noodles, vegetables, oyster sauce"
+    }
+   ],
+   "truth": {
+    "molluscs": "present",
+    "wheat": "undeterminable",
+    "eggs": "undeterminable"
+   },
+   "justification": "Oyster sauce is mollusc-based; noodle type unstated."
+  },
+  {
+   "id": "H-S36",
+   "tags": [
+    "derived"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, peanut oil, salt"
+    }
+   ],
+   "truth": {
+    "peanuts": "present"
+   },
+   "justification": "Peanut oil (refined oil is often tolerated, but it is still declared)."
+  },
+  {
+   "id": "H-S37",
+   "tags": [
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "custard (milk, sugar, egg yolk), pastry (wheat flour, butter)"
+    }
+   ],
+   "truth": {
+    "milk": "present",
+    "eggs": "present",
+    "wheat": "present"
+   },
+   "justification": "Custard tart with components listed."
+  },
+  {
+   "id": "H-S38",
+   "tags": [
+    "derived",
+    "direct"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "beef, onion, worcestershire sauce, mustard"
+    }
+   ],
+   "truth": {
+    "fish": "present",
+    "mustard": "present"
+   },
+   "justification": "Worcestershire sauce contains anchovies."
+  },
+  {
+   "id": "H-S39",
+   "tags": [
+    "ocr",
+    "uncertain",
+    "compound"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "Ingredients: water, sugar, lemon juice, pectin, colour ("
+    }
+   ],
+   "truth": {
+    "milk": "undeterminable"
+   },
+   "justification": "List is cut off mid-bracket."
+  },
+  {
+   "id": "H-S40",
+   "tags": [
+    "uncertain"
+   ],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "fruit, nuts etc."
+    }
+   ],
+   "truth": {
+    "peanuts": "undeterminable"
+   },
+   "justification": "'etc.' shows the list is incomplete."
+  }
+ ]
+}
