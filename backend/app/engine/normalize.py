@@ -44,6 +44,7 @@ CONFIDENCE = {"exact": 1.0, "spelling": 0.98, "ocr_correction": 0.85, "qualified
 OCR_CONFUSIONS = [
     ("l", "i"), ("i", "l"), ("1", "i"), ("1", "l"), ("rn", "m"), ("m", "rn"), ("cl", "d"), ("vv", "w"),
     ("0", "o"), ("5", "s"), ("c", "e"), ("e", "c"), ("ii", "u"), ("u", "ii"), ("li", "h"), ("h", "li"),
+    ("q", "g"), ("g", "q"), ("qq", "gg"),
 ]
 
 _HEADERS = [re.compile(p) for p in HEADER_PATTERNS]

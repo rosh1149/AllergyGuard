@@ -1,106 +1,125 @@
 {
- "description": "Photo-text OCR errors: expected correction, or null when the word must be left unchanged (real words, or errors with no single safe correction).",
- "version": 1,
- "cases": [
-  {
-   "input": "caseln",
-   "expected": "casein"
-  },
-  {
-   "input": "ca5ein",
-   "expected": "casein"
-  },
-  {
-   "input": "rnilk",
-   "expected": "milk"
-  },
-  {
-   "input": "aimond",
-   "expected": "almond"
-  },
-  {
-   "input": "pean0ts",
-   "expected": "peanuts"
-  },
-  {
-   "input": "whey powcler",
-   "expected": "whey powder"
-  },
-  {
-   "input": "s0ya",
-   "expected": "soya"
-  },
-  {
-   "input": "rnustard",
-   "expected": "mustard"
-  },
-  {
-   "input": "celerv",
-   "expected": null
-  },
-  {
-   "input": "se5ame",
-   "expected": "sesame"
-  },
-  {
-   "input": "wheal flour",
-   "expected": null
-  },
-  {
-   "input": "butler",
-   "expected": null
-  },
-  {
-   "input": "sugar",
-   "expected": null
-  },
-  {
-   "input": "milk",
-   "expected": null
-  },
-  {
-   "input": "salt",
-   "expected": null
-  },
-  {
-   "input": "lime",
-   "expected": null
-  },
-  {
-   "input": "flour",
-   "expected": null
-  },
-  {
-   "input": "corn",
-   "expected": null
-  },
-  {
-   "input": "oil",
-   "expected": null
-  },
-  {
-   "input": "rice",
-   "expected": null
-  },
-  {
-   "input": "zzqx",
-   "expected": null
-  },
-  {
-   "input": "barn",
-   "expected": null
-  },
-  {
-   "input": "modem",
-   "expected": null
-  },
-  {
-   "input": "clove",
-   "expected": null
-  },
-  {
-   "input": "cumin",
-   "expected": null
-  }
- ]
+  "description": "Photo-text OCR errors: expected correction, or null when the word must be left unchanged (real words, or errors with no single safe correction).",
+  "version": 2,
+  "cases": [
+    {
+      "input": "caseln",
+      "expected": "casein"
+    },
+    {
+      "input": "ca5ein",
+      "expected": "casein"
+    },
+    {
+      "input": "rnilk",
+      "expected": "milk"
+    },
+    {
+      "input": "aimond",
+      "expected": "almond"
+    },
+    {
+      "input": "pean0ts",
+      "expected": "peanuts"
+    },
+    {
+      "input": "whey powcler",
+      "expected": "whey powder"
+    },
+    {
+      "input": "s0ya",
+      "expected": "soya"
+    },
+    {
+      "input": "rnustard",
+      "expected": "mustard"
+    },
+    {
+      "input": "celerv",
+      "expected": null
+    },
+    {
+      "input": "se5ame",
+      "expected": "sesame"
+    },
+    {
+      "input": "wheal flour",
+      "expected": null
+    },
+    {
+      "input": "butler",
+      "expected": null
+    },
+    {
+      "input": "sugar",
+      "expected": null
+    },
+    {
+      "input": "milk",
+      "expected": null
+    },
+    {
+      "input": "salt",
+      "expected": null
+    },
+    {
+      "input": "lime",
+      "expected": null
+    },
+    {
+      "input": "flour",
+      "expected": null
+    },
+    {
+      "input": "corn",
+      "expected": null
+    },
+    {
+      "input": "oil",
+      "expected": null
+    },
+    {
+      "input": "rice",
+      "expected": null
+    },
+    {
+      "input": "zzqx",
+      "expected": null
+    },
+    {
+      "input": "barn",
+      "expected": null
+    },
+    {
+      "input": "modem",
+      "expected": null
+    },
+    {
+      "input": "clove",
+      "expected": null
+    },
+    {
+      "input": "cumin",
+      "expected": null
+    },
+    {
+      "input": "eqq",
+      "expected": "egg"
+    },
+    {
+      "input": "eqqs",
+      "expected": "eggs"
+    },
+    {
+      "input": "qluten",
+      "expected": "gluten"
+    }
+  ],
+  "changes": [
+    {
+      "version": 2,
+      "date": "2026-10-31",
+      "note": "Stage 5: cases for the Stage 4 held-out error analysis fixes (new development cases; held-out set untouched)."
+    }
+  ]
 }

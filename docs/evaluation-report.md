@@ -1,6 +1,6 @@
 # AllergyGuard evaluation report
 
-Generated 2026-10-31 16:45 UTC against the seed knowledge base.
+Generated 2026-10-31 17:44 UTC against the seed knowledge base.
 
 **Release gate: PASSED** (52/52 checks passed)
 
@@ -11,14 +11,14 @@ Generated 2026-10-31 16:45 UTC against the seed knowledge base.
 | Ingredient normalization | 43 | exact_match_accuracy | 0.9767 | >= 0.95 (quality) |
 |  |  | precision | 1.0 | >= 0.95 (quality) |
 |  |  | recall | 0.9667 | >= 0.9 (quality) |
-| OCR correction | 25 | correction_accuracy | 0.8889 | >= 0.85 (quality) |
+| OCR correction | 28 | correction_accuracy | 0.9167 | >= 0.85 (quality) |
 |  |  | false_correction_rate | 0.0 | <= 0.02 (quality) |
 | Synonym resolution | 49 | precision | 1.0 | >= 0.98 (quality) |
 |  |  | recall | 1.0 | >= 0.95 (quality) |
 | Ontology (concept) mapping | 52 | precision | 1.0 | >= 0.97 (quality) |
 |  |  | recall | 1.0 | >= 0.95 (quality) |
 |  |  | foodon_id_coverage | 0.4808 |  |
-| Semantic reasoning | 89 | relationship_accuracy | 1.0 | >= 0.97 (quality) |
+| Semantic reasoning | 97 | relationship_accuracy | 1.0 | >= 0.97 (quality) |
 |  |  | missed_allergen_count | 0 | <= 0 (critical) |
 | Compound ingredients | 12 | extraction_accuracy | 1.0 | >= 0.9 (quality) |
 |  |  | item_precision | 1.0 |  |

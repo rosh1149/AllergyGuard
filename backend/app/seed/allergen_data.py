@@ -95,6 +95,7 @@ ALLERGENS: list[dict] = [
         ],
         "exclusions": [
             ("eggplant", "Eggplant (aubergine) is a vegetable, not egg."),
+            ("egg plant", "Eggplant (aubergine) is a vegetable, not egg."),
             ("egg-free", "Declared egg-free."),
             ("vegan mayonnaise", "Usually egg-free; verify."),
             ("custard apple", "A fruit."),

@@ -77,7 +77,7 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     "lysozyme": ("lysozyme", ["lysozyme"], False),
     "mayonnaise": ("mayonnaise", ["mayonnaise", "mayo"], False),
     "meringue": ("meringue", ["meringue"], False),
-    "eggplant": ("eggplant", ["eggplant", "aubergine", "brinjal"], False),
+    "eggplant": ("eggplant", ["eggplant", "aubergine", "brinjal", "egg plant"], False),
     # ---- cereals ----
     "wheat": ("wheat", ["wheat", "wheat grain"], False),
     "wheat_flour": ("wheat flour", ["wheat flour", "white wheat flour", "whole wheat flour", "wholemeal flour", "atta", "maida", "refined wheat flour"], False),
@@ -98,7 +98,7 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     "triticale": ("triticale", ["triticale"], False),
     "buckwheat": ("buckwheat", ["buckwheat", "kuttu", "buckwheat flour"], False),
     "rice": ("rice", ["rice", "basmati rice", "rice flour", "brown rice"], False),
-    "maize": ("maize", ["maize", "corn", "sweetcorn", "corn flour", "cornflour", "maize flour", "corn starch", "cornstarch"], False),
+    "maize": ("maize", ["maize", "corn", "sweetcorn", "corn flour", "cornflour", "maize flour", "corn starch", "cornstarch", "maize starch"], False),
     "millet": ("millet", ["millet", "ragi", "bajra", "jowar", "sorghum"], False),
     "quinoa": ("quinoa", ["quinoa"], False),
     "tapioca": ("tapioca", ["tapioca", "tapioca starch", "cassava"], False),
@@ -258,6 +258,13 @@ CONCEPTS: dict[str, tuple[str, list[str], bool]] = {
     "gravy": ("gravy", ["gravy", "gravy granules"], True),
     "sausage": ("sausage", ["sausage", "sausages", "sausage meat"], True),
     "seafood": ("seafood", ["seafood", "sea food", "seafood mix", "mixed seafood"], True),
+    # Stage 5 (follow-up to the Stage 4 error analysis)
+    "bread": ("bread", ["bread", "white bread", "wholemeal bread", "bread roll", "bread rolls"], True),
+    "breadcrumbs": ("breadcrumbs", ["breadcrumbs", "bread crumbs", "breadcrumb", "panko", "rusk"], True),
+    "pasta": ("pasta", ["pasta", "spaghetti", "macaroni", "penne", "fusilli", "lasagne sheets"], True),
+    "noodles": ("noodles", ["noodles", "noodle"], True),
+    "rice_noodles": ("rice noodles", ["rice noodles", "rice noodle", "rice vermicelli", "flat rice noodles"], False),
+    "lemongrass": ("lemongrass", ["lemongrass", "lemon grass"], False),
 }
 
 # Names with more than one meaning. Each reading is kept: an allergen is definite only when every
@@ -347,6 +354,14 @@ RELATIONS: list[tuple[str, str, str, str]] = [
     ("sausage", "contains_component", "milk_powder", "possible"),
     ("sausage", "contains_component", "mustard", "possible"),
     ("sausage", "contains_component", "sulphite", "possible"),
+    ("bread", "contains_component", "wheat_flour", "possible"),
+    ("breadcrumbs", "contains_component", "bread", "possible"),
+    ("breadcrumbs", "contains_component", "wheat_flour", "possible"),
+    ("pasta", "contains_component", "durum_wheat", "possible"),
+    ("pasta", "contains_component", "egg", "possible"),
+    ("noodles", "contains_component", "wheat_flour", "possible"),
+    ("noodles", "contains_component", "egg", "possible"),
+    ("rice_noodles", "derived_from", "rice", "definite"),
     ("seafood", "contains_component", "fish", "possible"),
     ("seafood", "contains_component", "crustacean", "possible"),
     ("seafood", "contains_component", "mollusc", "possible"),
@@ -475,13 +490,13 @@ CONCEPT_TYPES: dict[str, list[str]] = {
         "ginger", "chickpea", "lentil", "pea", "chilli", "black_pepper", "turmeric", "cumin", "coriander",
         "cardamom", "cinnamon", "clove", "bell_pepper", "spinach", "carrot", "cauliflower", "lemon", "apple",
         "banana", "kiwi", "sunflower", "chicken", "beef", "pork", "turkey", "duck", "lamb", "butternut_squash",
-        "eggplant", "paprika",
+        "eggplant", "paprika", "lemongrass",
     ],
     "ingredient": [
         "butter", "ghee", "cream", "cheese", "paneer", "yogurt", "milk_powder", "buttermilk", "condensed_milk",
         "khoa", "egg_white", "egg_yolk", "egg_powder", "wheat_flour", "flour", "semolina", "bulgur", "couscous",
         "almond_flour", "lupin_flour", "coconut_milk", "almond_milk", "soy_milk", "oat_milk", "rice_milk", "tofu",
-        "tapioca", "sugar", "salt", "water", "yeast", "honey", "golden_syrup", "vinegar", "cocoa", "malt",
+        "tapioca", "sugar", "salt", "water", "yeast", "honey", "golden_syrup", "vinegar", "cocoa", "malt", "rice_noodles",
     ],
     "derivative": [
         "whey", "whey_powder", "lactose", "sodium_caseinate", "calcium_caseinate", "cocoa_butter", "wheat_starch",
@@ -499,7 +514,7 @@ CONCEPT_TYPES: dict[str, list[str]] = {
         "milk_chocolate", "chocolate", "mayonnaise", "meringue", "seitan", "peanut_butter", "satay_sauce",
         "marzipan", "gianduja", "praline", "cashew_paste", "soy_sauce", "tamari", "tempeh", "miso", "tahini",
         "hummus", "fish_sauce", "worcestershire_sauce", "shrimp_paste", "oyster_sauce", "nougat", "pesto",
-        "curry_paste", "gravy", "sausage",
+        "curry_paste", "gravy", "sausage", "bread", "breadcrumbs", "pasta", "noodles",
     ],
     "general_term": [
         "spices", "seasoning", "flavouring", "emulsifier", "raising_agent", "flavour_enhancer", "thickener",
