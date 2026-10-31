@@ -326,6 +326,23 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 cd backend && python -m app.evaluation
 ```
 
+## Stage 4: research experiments
+
+- **Held-out run.** The frozen held-out set was run once (2026-10-31, commit `41dc8e4`). AllergyGuard
+  made **no unsafe misses** (recall 53/53, 95 % CI 0.93–1.00). The baselines missed 15 (knowledge
+  mapping), 17 (synonyms) and 34 (exact names) required warnings (McNemar p ≤ 6 × 10⁻⁵).
+- **Over-caution.** There were 3 over-warnings, all caused by ingredients the knowledge base does not
+  know.
+- **Ablations.** Uncertainty handling is the most important safety component (10 unsafe misses
+  without it), then source reliability (3) and ontology reasoning (2).
+- **Speed.** The engine takes 3 ms per assessment (P95 5 ms). The API answers in P50 127 ms / P95
+  176 ms with 8 concurrent clients.
+- **Documents:** [docs/RESEARCH_RESULTS.md](docs/RESEARCH_RESULTS.md) (results, error analysis,
+  follow-up fixes), [docs/DATASETS.md](docs/DATASETS.md) (schema, counts, roles of the sets, expert
+  review sheet). The raw records are in `docs/experiments/`.
+- **Tools.** Ablation switches, baselines and the experiment runner (`python -m
+  app.evaluation.experiments`) are in `backend/app/evaluation/`.
+
 ## Stage 3: input pathways
 
 - **Recipe versions.** Versions have effective-from dates. A check uses the version in effect at that

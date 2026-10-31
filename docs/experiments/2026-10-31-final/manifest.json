@@ -1,0 +1,44 @@
+{
+ "date": "2026-10-31T17:15:04+00:00",
+ "git": {
+  "commit": "41dc8e4507fd11be6d973b9c41b1fb980505a705",
+  "dirty": false
+ },
+ "python": "3.13.17",
+ "platform": "Linux-6.18.44-fc-v185-x86_64-with-glibc2.39",
+ "tesseract": "tesseract 5.3.4",
+ "knowledge_base": {
+  "version": 1,
+  "sha256": "86cbd298d055f68891ed2d33bb61a91c38005f6778be3cf2fa9be7e66f92bf7a",
+  "concepts": 203,
+  "relations": 165
+ },
+ "datasets": {
+  "development": {
+   "compound": "d4418b0ef3b923429065a6efd991567b1b1562fd8da75a1ab8f5599de30a7029",
+   "fusion": "1ee9f99150c0f6613430e671e8b6e7a8f01f651892a346f361e8f287990ff33b",
+   "normalization": "f1205fa2200cb1982d345fa6807be224eb7da0c66feb3d3b5fb9307a472f4039",
+   "ocr_correction": "feedd6133f5f1e6cc0a758748c9533bde049a4ddba862c1700510865f0d037c4",
+   "ontology": "3b5e78faac03acc6ed53c4f53a5797da2aebf40aea1249e472f51a3f94ad15ee",
+   "reasoning": "2fc02b58d1223e8f77c1a6f1f8c2378864a40e5155e28fcdc201eacfad7b9a47",
+   "safety": "ee150a6a9c1e2931f47b3d801b2193c367025b556066d8c857a47418e9c149d8",
+   "synonyms": "a188e5f1930a1db560b2ba194d2c34966a75990f36ef9977957dd5d4909961a7",
+   "uncertainty": "564f47f6f19575b67855469cb1f6884655385c4328a447a8312763d1f14d10ae"
+  },
+  "heldout": {
+   "MANIFEST": "48548055b2a4d075e45afb2b8194ef9ac017371c57665cd98d309781de69540b",
+   "ingredients": "ca54f8624b2fc1057c181666593f5d804df00270d3904e8538ed5853f32beaef",
+   "ocr": "6f4d2b34b39fe689e98e9c3001e0e7e77f368e2d24f6881a0811dff8fd5bd2cc",
+   "scenarios": "33ac9728320b682118c86ce7bc5e778231ac2bdfb436ae783307d1705a7161f3"
+  }
+ },
+ "settings": {
+  "fuzzy_phrase_threshold": 90.0,
+  "fuzzy_word_threshold": 88.0,
+  "fuzzy_min_length": 5,
+  "fuzzy_margin": 3.0,
+  "restaurant_record_max_age_days": 365,
+  "product_record_max_age_days": 1095
+ },
+ "evaluation_time": "2026-10-01T00:00:00+00:00"
+}

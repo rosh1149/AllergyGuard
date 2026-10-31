@@ -1,0 +1,1556 @@
+{
+ "set": "held-out test set",
+ "comparison": {
+  "proposed": {
+   "checks": 69,
+   "tp": 53,
+   "fp": 3,
+   "tn": 13,
+   "fn": 0,
+   "accuracy": 0.9565,
+   "precision": 0.9464,
+   "recall": 1.0,
+   "f1": 0.9725,
+   "unknown_share": 0.3043,
+   "exact_outcome_accuracy": 0.913,
+   "ms_per_case_mean": 3.771,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "b1_exact": {
+   "checks": 69,
+   "tp": 19,
+   "fp": 1,
+   "tn": 15,
+   "fn": 34,
+   "accuracy": 0.4928,
+   "precision": 0.95,
+   "recall": 0.3585,
+   "f1": 0.5205,
+   "unknown_share": 0.0,
+   "exact_outcome_accuracy": 0.4783,
+   "ms_per_case_mean": 0.034,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "soy",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S03",
+     "allergen": "tree_nuts",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "direct",
+      "negative"
+     ],
+     "why": "Almonds listed; no peanut."
+    },
+    {
+     "case": "H-S05",
+     "allergen": "fish",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "compound",
+      "direct"
+     ],
+     "why": "Breaded cod."
+    },
+    {
+     "case": "H-S05",
+     "allergen": "gluten",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "compound",
+      "direct"
+     ],
+     "why": "Breaded cod."
+    },
+    {
+     "case": "H-S06",
+     "allergen": "tree_nuts",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "compound"
+     ],
+     "why": "Milk chocolate with hazelnuts."
+    },
+    {
+     "case": "H-S07",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived"
+     ],
+     "why": "Ghee is clarified butter."
+    },
+    {
+     "case": "H-S08",
+     "allergen": "sesame",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Hummus."
+    },
+    {
+     "case": "H-S09",
+     "allergen": "tree_nuts",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "direct",
+      "negative"
+     ],
+     "why": "Macaron shells."
+    },
+    {
+     "case": "H-S11",
+     "allergen": "gluten",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "compound",
+      "negative"
+     ],
+     "why": "Dry pasta without egg."
+    },
+    {
+     "case": "H-S13",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Flavouring components not listed; milk cannot be ruled out."
+    },
+    {
+     "case": "H-S14",
+     "allergen": "celery",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Stock commonly contains celery; components not listed."
+    },
+    {
+     "case": "H-S15",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Source states the list is partial."
+    },
+    {
+     "case": "H-S16",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable photo."
+    },
+    {
+     "case": "H-S17",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr"
+     ],
+     "why": "Caseinate misread."
+    },
+    {
+     "case": "H-S18",
+     "allergen": "tree_nuts",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr"
+     ],
+     "why": "Hazelnuts misread."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "gluten",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "mustard",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S23",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "negative"
+     ],
+     "why": "Palak paneer, verified complete."
+    },
+    {
+     "case": "H-S24",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Verified record is about two years old."
+    },
+    {
+     "case": "H-S25",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Unverified record cannot rule out."
+    },
+    {
+     "case": "H-S27",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Public recipe only: not this restaurant."
+    },
+    {
+     "case": "H-S28",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "conflict"
+     ],
+     "why": "One source lists whey: the cautious finding must hold."
+    },
+    {
+     "case": "H-S30",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "conflict"
+     ],
+     "why": "Lists describe different products."
+    },
+    {
+     "case": "H-S31",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification",
+      "uncertain"
+     ],
+     "why": "Database entry may belong to another product."
+    },
+    {
+     "case": "H-S32",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification"
+     ],
+     "why": "Even an uncertain match must not hide listed allergens."
+    },
+    {
+     "case": "H-S32",
+     "allergen": "gluten",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification"
+     ],
+     "why": "Even an uncertain match must not hide listed allergens."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "PRESENT",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "molluscs",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "wheat",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "eggs",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S38",
+     "allergen": "fish",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "direct"
+     ],
+     "why": "Worcestershire sauce contains anchovies."
+    },
+    {
+     "case": "H-S39",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain",
+      "compound"
+     ],
+     "why": "List is cut off mid-bracket."
+    },
+    {
+     "case": "H-S40",
+     "allergen": "peanuts",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "'etc.' shows the list is incomplete."
+    }
+   ]
+  },
+  "b2_synonyms": {
+   "checks": 69,
+   "tp": 36,
+   "fp": 0,
+   "tn": 16,
+   "fn": 17,
+   "accuracy": 0.7536,
+   "precision": 1.0,
+   "recall": 0.6792,
+   "f1": 0.809,
+   "unknown_share": 0.0,
+   "exact_outcome_accuracy": 0.7246,
+   "ms_per_case_mean": 0.503,
+   "errors": [
+    {
+     "case": "H-S13",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Flavouring components not listed; milk cannot be ruled out."
+    },
+    {
+     "case": "H-S14",
+     "allergen": "celery",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Stock commonly contains celery; components not listed."
+    },
+    {
+     "case": "H-S15",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Source states the list is partial."
+    },
+    {
+     "case": "H-S16",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable photo."
+    },
+    {
+     "case": "H-S17",
+     "allergen": "milk",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr"
+     ],
+     "why": "Caseinate misread."
+    },
+    {
+     "case": "H-S18",
+     "allergen": "tree_nuts",
+     "truth": "present",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr"
+     ],
+     "why": "Hazelnuts misread."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "gluten",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "mustard",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S24",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Verified record is about two years old."
+    },
+    {
+     "case": "H-S25",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Unverified record cannot rule out."
+    },
+    {
+     "case": "H-S27",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Public recipe only: not this restaurant."
+    },
+    {
+     "case": "H-S31",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification",
+      "uncertain"
+     ],
+     "why": "Database entry may belong to another product."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "wheat",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "eggs",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S39",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain",
+      "compound"
+     ],
+     "why": "List is cut off mid-bracket."
+    },
+    {
+     "case": "H-S40",
+     "allergen": "peanuts",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "'etc.' shows the list is incomplete."
+    }
+   ]
+  },
+  "b3_knowledge": {
+   "checks": 69,
+   "tp": 38,
+   "fp": 0,
+   "tn": 16,
+   "fn": 15,
+   "accuracy": 0.7826,
+   "precision": 1.0,
+   "recall": 0.717,
+   "f1": 0.8352,
+   "unknown_share": 0.0,
+   "exact_outcome_accuracy": 0.7536,
+   "ms_per_case_mean": 0.434,
+   "errors": [
+    {
+     "case": "H-S13",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Flavouring components not listed; milk cannot be ruled out."
+    },
+    {
+     "case": "H-S14",
+     "allergen": "celery",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Stock commonly contains celery; components not listed."
+    },
+    {
+     "case": "H-S15",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Source states the list is partial."
+    },
+    {
+     "case": "H-S16",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable photo."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "gluten",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "mustard",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S24",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Verified record is about two years old."
+    },
+    {
+     "case": "H-S25",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Unverified record cannot rule out."
+    },
+    {
+     "case": "H-S27",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Public recipe only: not this restaurant."
+    },
+    {
+     "case": "H-S31",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification",
+      "uncertain"
+     ],
+     "why": "Database entry may belong to another product."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "wheat",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "eggs",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S39",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain",
+      "compound"
+     ],
+     "why": "List is cut off mid-bracket."
+    },
+    {
+     "case": "H-S40",
+     "allergen": "peanuts",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "'etc.' shows the list is incomplete."
+    }
+   ]
+  }
+ },
+ "ingredient_level": {
+  "proposed": {
+   "ingredients": {
+    "link_recall": 0.9831,
+    "false_link_rate": 0.0455
+   },
+   "ocr": {
+    "link_recall": 0.9286,
+    "false_link_rate": 0.4
+   }
+  },
+  "b1_exact": {
+   "ingredients": {
+    "link_recall": 0.3729,
+    "false_link_rate": 0.0455
+   },
+   "ocr": {
+    "link_recall": 0.0,
+    "false_link_rate": 0.0
+   }
+  },
+  "b2_synonyms": {
+   "ingredients": {
+    "link_recall": 0.9831,
+    "false_link_rate": 0.0455
+   },
+   "ocr": {
+    "link_recall": 0.0714,
+    "false_link_rate": 0.0
+   }
+  },
+  "b3_knowledge": {
+   "ingredients": {
+    "link_recall": 0.9831,
+    "false_link_rate": 0.0455
+   },
+   "ocr": {
+    "link_recall": 0.2857,
+    "false_link_rate": 0.0
+   }
+  }
+ },
+ "ablations": {
+  "full": {
+   "accuracy": 0.9565,
+   "precision": 0.9464,
+   "recall": 1.0,
+   "f1": 0.9725,
+   "fn": 0,
+   "fp": 3,
+   "unknown_share": 0.3043,
+   "exact_outcome_accuracy": 0.913,
+   "dev_safety_false_negatives": 0,
+   "dev_unsafe_absences": 0,
+   "dev_reasoning_accuracy": 1.0,
+   "dev_normalization_accuracy": 0.9767,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_ontology": {
+   "accuracy": 0.9275,
+   "precision": 0.9444,
+   "recall": 0.9623,
+   "f1": 0.9533,
+   "fn": 2,
+   "fp": 3,
+   "unknown_share": 0.2754,
+   "exact_outcome_accuracy": 0.8841,
+   "dev_safety_false_negatives": 2,
+   "dev_unsafe_absences": 10,
+   "dev_reasoning_accuracy": 0.8315,
+   "dev_normalization_accuracy": 0.9767,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S13",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Flavouring components not listed; milk cannot be ruled out."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "mustard",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_normalization": {
+   "accuracy": 0.942,
+   "precision": 0.9298,
+   "recall": 1.0,
+   "f1": 0.9636,
+   "fn": 0,
+   "fp": 4,
+   "unknown_share": 0.3478,
+   "exact_outcome_accuracy": 0.8696,
+   "dev_safety_false_negatives": 0,
+   "dev_unsafe_absences": 1,
+   "dev_reasoning_accuracy": 0.9326,
+   "dev_normalization_accuracy": 0.3488,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S33",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Cocoa butter is not dairy."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_compound": {
+   "accuracy": 0.9565,
+   "precision": 0.9464,
+   "recall": 1.0,
+   "f1": 0.9725,
+   "fn": 0,
+   "fp": 3,
+   "unknown_share": 0.3043,
+   "exact_outcome_accuracy": 0.913,
+   "dev_safety_false_negatives": 0,
+   "dev_unsafe_absences": 0,
+   "dev_reasoning_accuracy": 0.9551,
+   "dev_normalization_accuracy": 0.9302,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_source_reliability": {
+   "accuracy": 0.913,
+   "precision": 0.9434,
+   "recall": 0.9434,
+   "f1": 0.9434,
+   "fn": 3,
+   "fp": 3,
+   "unknown_share": 0.2174,
+   "exact_outcome_accuracy": 0.8841,
+   "dev_safety_false_negatives": 2,
+   "dev_unsafe_absences": 4,
+   "dev_reasoning_accuracy": 1.0,
+   "dev_normalization_accuracy": 0.9767,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S16",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable photo."
+    },
+    {
+     "case": "H-S25",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Unverified record cannot rule out."
+    },
+    {
+     "case": "H-S31",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "identification",
+      "uncertain"
+     ],
+     "why": "Database entry may belong to another product."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_conflicts": {
+   "accuracy": 0.9565,
+   "precision": 0.9464,
+   "recall": 1.0,
+   "f1": 0.9725,
+   "fn": 0,
+   "fp": 3,
+   "unknown_share": 0.3043,
+   "exact_outcome_accuracy": 0.913,
+   "dev_safety_false_negatives": 1,
+   "dev_unsafe_absences": 1,
+   "dev_reasoning_accuracy": 1.0,
+   "dev_normalization_accuracy": 0.9767,
+   "errors": [
+    {
+     "case": "H-S02",
+     "allergen": "wheat",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Tamari is soy-based and normally wheat-free."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "milk",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    },
+    {
+     "case": "H-S34",
+     "allergen": "tree_nuts",
+     "truth": "absent",
+     "got": "UNKNOWN",
+     "kind": "false positive (over-warning)",
+     "tags": [
+      "derived",
+      "negative"
+     ],
+     "why": "Coconut milk is not dairy and coconut is not an EU tree nut."
+    }
+   ]
+  },
+  "no_uncertainty": {
+   "accuracy": 0.8551,
+   "precision": 1.0,
+   "recall": 0.8113,
+   "f1": 0.8958,
+   "fn": 10,
+   "fp": 0,
+   "unknown_share": 0.1159,
+   "exact_outcome_accuracy": 0.8116,
+   "dev_safety_false_negatives": 6,
+   "dev_unsafe_absences": 19,
+   "dev_reasoning_accuracy": 1.0,
+   "dev_normalization_accuracy": 0.9767,
+   "errors": [
+    {
+     "case": "H-S13",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Flavouring components not listed; milk cannot be ruled out."
+    },
+    {
+     "case": "H-S14",
+     "allergen": "celery",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Stock commonly contains celery; components not listed."
+    },
+    {
+     "case": "H-S15",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "Source states the list is partial."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S19",
+     "allergen": "gluten",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain"
+     ],
+     "why": "Unreadable ingredient blocks absence."
+    },
+    {
+     "case": "H-S22",
+     "allergen": "mustard",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Yogurt marinade; spice mix not itemised."
+    },
+    {
+     "case": "H-S24",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "restaurant",
+      "uncertain"
+     ],
+     "why": "Verified record is about two years old."
+    },
+    {
+     "case": "H-S35",
+     "allergen": "eggs",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "derived",
+      "uncertain"
+     ],
+     "why": "Oyster sauce is mollusc-based; noodle type unstated."
+    },
+    {
+     "case": "H-S39",
+     "allergen": "milk",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "ocr",
+      "uncertain",
+      "compound"
+     ],
+     "why": "List is cut off mid-bracket."
+    },
+    {
+     "case": "H-S40",
+     "allergen": "peanuts",
+     "truth": "undeterminable",
+     "got": "NOT_LISTED_IN_VERIFIED_RECORDS",
+     "kind": "FALSE NEGATIVE (unsafe)",
+     "tags": [
+      "uncertain"
+     ],
+     "why": "'etc.' shows the list is incomplete."
+    }
+   ]
+  }
+ },
+ "components_dev": {
+  "normalization": {
+   "exact_match_accuracy": 0.9767,
+   "precision": 1.0,
+   "recall": 0.9667
+  },
+  "ocr_correction": {
+   "correction_accuracy": 0.8889,
+   "false_correction_rate": 0.0
+  },
+  "synonyms": {
+   "precision": 1.0,
+   "recall": 1.0
+  },
+  "ontology_mapping": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "foodon_id_coverage": 0.4808
+  },
+  "semantic_reasoning": {
+   "relationship_accuracy": 1.0,
+   "missed_allergen_count": 0
+  },
+  "compound_ingredients": {
+   "extraction_accuracy": 1.0,
+   "item_precision": 1.0,
+   "item_recall": 1.0
+  },
+  "evidence_fusion": {
+   "agreement_accuracy": 1.0,
+   "conflict_resolution_accuracy": 1.0,
+   "unsafe_absence_count": 0
+  },
+  "provenance": {
+   "traceability_coverage": 1.0
+  },
+  "uncertainty": {
+   "handling_accuracy": 1.0,
+   "unsafe_absence_count": 0
+  },
+  "safety": {
+   "false_negative_rate": 0.0,
+   "false_negative_count": 0,
+   "false_positive_rate": 0.0,
+   "outcome_accuracy": 1.0,
+   "positive_checks": 65,
+   "negative_checks": 21,
+   "accuracy_compound": 1.0,
+   "accuracy_conflict": 1.0,
+   "accuracy_cross_contact": 1.0,
+   "accuracy_derived": 1.0,
+   "accuracy_direct": 1.0,
+   "accuracy_fuzzy": 1.0,
+   "accuracy_identification": 1.0,
+   "accuracy_negative": 1.0,
+   "accuracy_ocr": 1.0,
+   "accuracy_regression": 1.0,
+   "accuracy_restaurant": 1.0,
+   "accuracy_uncertain": 1.0
+  }
+ },
+ "heldout_ingredients": {
+  "cases": 65,
+  "link_recall": 0.9831,
+  "false_link_rate": 0.0455,
+  "misses": [
+   "H-I21 'breadcrumbs': wheat not linked"
+  ],
+  "wrong": [
+   "H-I65 'egg plant': eggs wrongly linked"
+  ]
+ },
+ "heldout_ocr": {
+  "cases": 16,
+  "link_recall": 0.9286,
+  "false_link_rate": 0.4,
+  "misses": [
+   "H-O13 'egq white': eggs not linked"
+  ],
+  "wrong": [
+   "H-O15 'rnaize starch': wheat wrongly linked",
+   "H-O15 'rnaize starch': gluten wrongly linked"
+  ]
+ },
+ "performance": {
+  "engine_runs": 800,
+  "ms_mean": 3.012,
+  "ms_p50": 2.858,
+  "ms_p95": 4.972,
+  "ms_max": 7.548,
+  "throughput_per_s": 331.8,
+  "peak_traced_memory_mb": 0.12,
+  "note": "Engine only (no OCR, no network), single process, warm caches after the first repeat.",
+  "process_max_rss_mb": 48.7
+ },
+ "api_load": {
+  "requests": 200,
+  "concurrent_clients": 8,
+  "errors": 0,
+  "ms_p50": 127.2,
+  "ms_p95": 176.3,
+  "ms_max": 282.7,
+  "throughput_per_s": 54.6,
+  "server_rss_mb": 117.5,
+  "note": "POST /api/analyze/text incl. auth, database writes (stored assessment) and JSON; one uvicorn worker."
+ }
+}
