@@ -27,6 +27,7 @@ COLUMNS = [
     ("recipe_versions", "cross_contact_reviewed", "BOOLEAN NOT NULL DEFAULT false"),
     ("cross_contact_records", "kind", "cross_contact_kind NOT NULL DEFAULT 'other'"),
     ("cross_contact_records", "status", "cross_contact_status NOT NULL DEFAULT 'verified'"),
+    ("cross_contact_records", "ingredient", "VARCHAR(200) NOT NULL DEFAULT ''"),
     ("feedback_suggestions", "clarification_request", "TEXT NOT NULL DEFAULT ''"),
     ("feedback_suggestions", "clarification_response", "TEXT NOT NULL DEFAULT ''"),
     ("feedback_suggestions", "clarified_at", "TIMESTAMP WITH TIME ZONE"),

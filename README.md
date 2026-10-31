@@ -326,6 +326,22 @@ found, and [docs/evaluation-report.md](docs/evaluation-report.md) for the latest
 cd backend && python -m app.evaluation
 ```
 
+## Stage 2: reasoning and fusion engine
+
+- **Decision table.** One source-policy table drives the engine. `GET /api/knowledge/decision-matrix`
+  publishes the sources, rules R1–R6, absence conditions, thresholds, conflict handling and
+  cross-contact statuses the engine actually uses.
+- **Unverified knowledge** can only raise a *possible* link, never PRESENT.
+- **Conflicts.** Sources are compared by matched concept, not wording. Each conflict lists what only one
+  source has, its status (resolved or unresolved) and how it was handled. Minor differences without an
+  allergen link are explained but don't block NOT LISTED.
+- **Provenance.** Each finding also records its relationship steps, FoodOn ID and allergen category.
+- **Cross-contact.** Each allergen gets a cross-contact status (reported / none reported after review /
+  not assessed) kept apart from its ingredient outcome. Restaurant records can tie a cross-contact risk
+  to one ingredient.
+- **Tests** cover determinism, and show that a customer's other allergies never change how an allergen
+  is assessed.
+
 ## Stage 1: knowledge foundations
 
 - **Held-out test set.** `backend/app/evaluation/heldout/` holds 121 cases with ground-truth labels. It

@@ -30,7 +30,7 @@ export function recipeFromVersion(v: RecipeVersion | null): RecipeInput {
   return {
     ingredients: v.ingredients.map((i) => ({ name: i.name, notes: i.notes, allergen_codes: [...i.allergen_codes] })),
     dish_allergen_codes: [...v.dish_allergen_codes],
-    cross_contacts: v.cross_contacts.map((c) => ({ ...c, kind: c.kind ?? "other", status: c.status ?? "verified" })),
+    cross_contacts: v.cross_contacts.map((c) => ({ ...c, kind: c.kind ?? "other", status: c.status ?? "verified", ingredient: c.ingredient ?? "" })),
     cross_contact_reviewed: Boolean(v.cross_contact_reviewed),
     change_note: "",
     mark_verified: false,
@@ -159,12 +159,16 @@ export function RecipeEditor({
           <select aria-label="Cross-contact status" value={c.status} onChange={(e) => setCC(i, { status: e.target.value as CrossContactStatus })}>
             {Object.entries(CC_STATUS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
           </select>
+          <select aria-label="Cross-contact ingredient" value={c.ingredient ?? ""} onChange={(e) => setCC(i, { ingredient: e.target.value })}>
+            <option value="">Whole dish</option>
+            {value.ingredients.filter((x) => x.name.trim()).map((x) => <option key={x.name} value={x.name.trim()}>{x.name.trim()}</option>)}
+          </select>
           <input aria-label="Cross-contact description" placeholder="Details, e.g. fryer also used for satay" value={c.description}
             onChange={(e) => setCC(i, { description: e.target.value })} />
           <button type="button" className="small danger" onClick={() => onChange({ ...value, cross_contacts: value.cross_contacts.filter((_, j) => j !== i) })}>Remove</button>
         </div>
       ))}
-      <button type="button" className="small" onClick={() => onChange({ ...value, cross_contacts: [...value.cross_contacts, { allergen_code: "", level: "possible", description: "", kind: "other", status: "verified" }] })}>
+      <button type="button" className="small" onClick={() => onChange({ ...value, cross_contacts: [...value.cross_contacts, { allergen_code: "", level: "possible", description: "", kind: "other", status: "verified", ingredient: "" }] })}>
         + Add cross-contact
       </button>
       <label className="check" style={{ marginTop: "0.6rem" }}>

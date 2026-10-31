@@ -126,3 +126,63 @@ ingredient lists clearly disagree. A source is eligible only when all of these h
 **NOT LISTED IN VERIFIED RECORDS** means only that the allergen is not in the verified records checked.
 It is never a statement that the food is safe or allergen-free. UNKNOWN means the evidence cannot
 settle the question, and is never treated as reassurance.
+
+## Evidence fusion (Stage 2)
+
+**The decision table.** One table (`SOURCE_POLICY` in `backend/app/engine/types.py`) says how each kind
+of source may be used: whether it can show an allergen as present, whether it can support absence,
+whether it depends on identification, and how its age is judged. The engine's rules are derived from
+that table. `GET /api/knowledge/decision-matrix` publishes it, together with:
+
+- the outcome rules (R1–R6)
+- the absence conditions
+- the thresholds
+- the meaning of each conflict handling and cross-contact status
+
+**What each factor does:**
+
+- **Freshness, reading confidence and identification confidence** decide whether a source is
+  *eligible* to rule an allergen out. They never weaken a PRESENT finding, and they are never combined
+  into a single score.
+- **Unverified knowledge** (a relation with status *unverified*) can only raise a *possible* link. It
+  never makes an allergen PRESENT.
+
+**Conflicts.** Sources are compared by what their ingredients *are* (matched concepts), not by
+wording: "wholegrain oat flakes" and "oat flakes" are the same ingredient. Each conflict records:
+
+- the sources involved, with their dates
+- the ingredients only one source lists (`only_in`)
+- whether it is `resolved` or `unresolved`
+- how it was handled
+
+| Conflict | Handling | Effect |
+|---|---|---|
+| A source's allergen declaration omits an allergen its ingredients show | cautious finding kept | PRESENT |
+| Sources disagree about an allergen | cautious finding kept | PRESENT |
+| Lists differ in ingredients that carry no allergen link | no allergen effect | none; recorded and explained |
+| Lists differ in ingredients that carry an allergen | cautious finding kept | that allergen is kept |
+| Lists differ substantially (less than 50 % in common) | absence blocked, **unresolved** | UNKNOWN for anything not shown present |
+| One source records cross-contact, another assessed and found none | cross-contact kept | POSSIBLE CROSS-CONTACT |
+
+**Provenance.** Every finding records:
+
+- the ingredient as written and as read, with the match method and confidence
+- the matched concept, its FoodOn ID and the relationship path (as text and as concept steps)
+- the allergen category it maps to
+- the source's reference, verification and date, and when the evidence was collected
+- the ids of any conflicts it is part of
+- the decision rule
+
+**Cross-contact.** Each allergen has a cross-contact status that is separate from its ingredient
+outcome:
+
+- `reported`: a source records it
+- `none_reported`: a trusted source says it was assessed and records none
+- `not_assessed`: no source says
+
+Restaurant records can name the ingredient the risk comes through, e.g. a supplier that also handles
+cashews. That ingredient must be part of the recipe.
+
+**Determinism.** The same evidence, knowledge-base version and profile always give the same result. The
+profile only selects which findings are highlighted. Tests check that an allergen's assessment is
+identical whichever other allergies the customer has.

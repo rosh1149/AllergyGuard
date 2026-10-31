@@ -1,6 +1,6 @@
 {
  "description": "Multi-source scenarios: expected outcome per allergen and the conflicts that must be detected.",
- "version": 1,
+ "version": 2,
  "cases": [
   {
    "id": "F01",
@@ -312,6 +312,70 @@
     "eggs": "UNKNOWN"
    },
    "note": "lecithin's source is not stated: possible soy or egg"
+  },
+  {
+   "id": "F15",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "wholegrain oat flakes, raw cane sugar, sea salt"
+    },
+    {
+     "type": "product_database",
+     "text": "oat flakes, sugar, salt"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "note": "same ingredients written differently: compared as concepts, no conflict"
+  },
+  {
+   "id": "F16",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar, paprika"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar"
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "conflicts": [
+    "ingredient_difference"
+   ],
+   "note": "a difference without any allergen link is recorded but does not block absence"
+  },
+  {
+   "id": "F17",
+   "tags": [],
+   "sources": [
+    {
+     "type": "label_manual",
+     "text": "rice, salt, sugar, turmeric"
+    },
+    {
+     "type": "product_database",
+     "text": "rice, salt, sugar, cumin",
+     "declared": []
+    }
+   ],
+   "expect": {
+    "milk": "NOT_LISTED_IN_VERIFIED_RECORDS"
+   },
+   "conflicts": [
+    "ingredient_difference"
+   ],
+   "note": "differing spices carry no allergen link"
   }
+ ],
+ "changes": [
+  "v2 (Stage 2): cases added for concept-level list comparison and minor differences without allergen effect."
  ]
 }

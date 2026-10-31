@@ -24,6 +24,7 @@ from app.models import (
     ConceptAlias,
     ConceptRelation,
     IngredientConcept,
+    KnowledgeStatus,
     KnowledgeVersion,
     RegulatoryList,
     UnresolvedIngredient,
@@ -61,7 +62,9 @@ def load_knowledge_base(db: Session) -> KnowledgeBase:
             obj = by_id[r.object_concept_id].slug
         else:
             continue
-        relations.append((by_id[r.subject_id].slug, r.relation.value, obj, r.certainty.value))
+        # Knowledge not yet verified may raise a possibility, never establish a definite link.
+        cert = "possible" if r.status == KnowledgeStatus.unverified else r.certainty.value
+        relations.append((by_id[r.subject_id].slug, r.relation.value, obj, cert))
 
     hierarchy = [
         (codes[h.child_id], codes[h.parent_id])

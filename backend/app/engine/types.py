@@ -45,33 +45,41 @@ class SourceType(str, enum.Enum):
     customer_suggestion = "customer_suggestion"  # unverified customer feedback (candidate only)
 
 
-# Sources whose presence findings count as PRESENT. Everything else is a candidate only.
-AUTHORITATIVE = {
-    SourceType.label_ocr,
-    SourceType.label_manual,
-    SourceType.product_database,
-    SourceType.manufacturer,
-    SourceType.restaurant_verified,
-    SourceType.restaurant_unverified,
+@dataclass(frozen=True)
+class SourcePolicy:
+    """How one kind of source may be used. The engine's decisions are derived from this table."""
+
+    shows_present: bool  # its ingredients/declarations can make an allergen PRESENT
+    supports_absence: bool  # when complete, current and readable it can support NOT LISTED
+    depends_on_identification: bool  # it describes *an* item: only trusted if identification is confident
+    freshness: str  # how age is judged
+    role: str  # one line for documentation and the decision-matrix endpoint
+
+
+SOURCE_POLICY: dict[SourceType, SourcePolicy] = {
+    SourceType.label_ocr: SourcePolicy(True, True, False, "photographed now",
+                                       "The customer's own label photo: trusted if read reliably."),
+    SourceType.label_manual: SourcePolicy(True, True, False, "typed now",
+                                          "Label text typed by the customer: trusted, typos are a stated limitation."),
+    SourceType.product_database: SourcePolicy(True, True, True, "last update within the product-record limit",
+                                              "Product database entry: trusted only for a confidently identified product."),
+    SourceType.manufacturer: SourcePolicy(True, True, True, "as dated by the manufacturer",
+                                          "Manufacturer information: trusted only for a confidently identified product."),
+    SourceType.restaurant_verified: SourcePolicy(True, True, True, "verified within the restaurant-record limit",
+                                                 "Staff-verified recipe version: the restaurant's authoritative record."),
+    SourceType.restaurant_unverified: SourcePolicy(True, False, True, "not used for absence",
+                                                   "Recipe not yet verified by staff: shows allergens, never rules them out."),
+    SourceType.public_recipe: SourcePolicy(False, False, False, "not applicable",
+                                           "How a dish is commonly made, not this restaurant's recipe: candidates only."),
+    SourceType.customer_suggestion: SourcePolicy(False, False, True, "only reports on the current recipe version",
+                                                 "Unreviewed customer report: candidates only until staff confirm it."),
 }
 
-# Sources that, when complete and reliable, can support NOT LISTED IN VERIFIED RECORDS.
-ABSENCE_CAPABLE = {
-    SourceType.label_ocr,
-    SourceType.label_manual,
-    SourceType.product_database,
-    SourceType.manufacturer,
-    SourceType.restaurant_verified,
-}
-
-# Sources that describe *a* product/dish, so they're only relevant if identification was right.
+# Derived sets used by the engine (kept as names for readability).
+AUTHORITATIVE = {t for t, p in SOURCE_POLICY.items() if p.shows_present}
+ABSENCE_CAPABLE = {t for t, p in SOURCE_POLICY.items() if p.supports_absence}
 # Label text comes straight from the customer's photo, so it doesn't depend on identification.
-IDENTITY_DEPENDENT = {
-    SourceType.product_database,
-    SourceType.manufacturer,
-    SourceType.restaurant_verified,
-    SourceType.restaurant_unverified,
-}
+IDENTITY_DEPENDENT = {t for t, p in SOURCE_POLICY.items() if p.depends_on_identification and p.shows_present}
 
 SOURCE_TYPE_LABELS = {
     SourceType.label_ocr: "Package label (read from photo)",
@@ -100,6 +108,7 @@ class CrossContactDecl:
     # supplier | precautionary_label | other
     kind: str = "other"
     status: str = "verified"  # verified | reported | unknown
+    ingredient: str = ""  # the ingredient the risk comes through ("" = the whole item)
 
 
 @dataclass
@@ -177,6 +186,9 @@ class EvidenceRef(BaseModel):
     concept: str = ""  # ingredient concept slug, when the finding came through the knowledge layer
     relationship_path: str = ""  # e.g. "sodium caseinate, derived from casein, is a milk protein, ..."
     certainty: str = ""  # definite | possible (concept relationships)
+    path_nodes: list[str] = Field(default_factory=list)  # concept slugs along the relationship path
+    foodon_id: str | None = None  # of the matched concept, when it has one
+    allergen_category: str = ""  # the regulated allergen category the finding maps to
     match_confidence: float | None = None
     # Provenance copied from the source, so each finding stands on its own.
     source_reference: str = ""
@@ -229,16 +241,24 @@ class AllergenAssessment(BaseModel):
     basis: list[str] = Field(default_factory=list)
     # The decision rules that produced the outcome (see app/engine/rules.py), for auditing.
     rules: list[str] = Field(default_factory=list)
+    # Handling-related risk, kept apart from ingredient evidence: reported | none_reported (a trusted
+    # source assessed cross-contact and recorded none) | not_assessed (nobody said).
+    cross_contact: str = "not_assessed"
 
 
 class Conflict(BaseModel):
     id: str = ""
-    # allergen_disagreement | ingredient_list_mismatch | declaration_mismatch | cross_contact_disagreement
+    # allergen_disagreement | ingredient_list_mismatch | ingredient_difference | declaration_mismatch |
+    # cross_contact_disagreement
     kind: str
     allergen_code: str | None = None
     description: str
     source_ids: list[str]
     resolution: str = ""  # how the engine resolved it (the cautious finding is always kept)
+    # cautious_finding_kept | absence_blocked | no_allergen_effect | cross_contact_kept
+    handling: str = ""
+    status: str = "resolved"  # resolved | unresolved (an unresolved conflict makes the result uncertain)
+    only_in: dict[str, list[str]] = Field(default_factory=dict)  # source id -> ingredients only that source lists
 
 
 class SourceSummary(BaseModel):

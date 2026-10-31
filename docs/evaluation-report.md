@@ -1,6 +1,6 @@
 # AllergyGuard evaluation report
 
-Generated 2026-10-31 14:15 UTC against the seed knowledge base.
+Generated 2026-10-31 16:45 UTC against the seed knowledge base.
 
 **Release gate: PASSED** (52/52 checks passed)
 
@@ -23,10 +23,10 @@ Generated 2026-10-31 14:15 UTC against the seed knowledge base.
 | Compound ingredients | 12 | extraction_accuracy | 1.0 | >= 0.9 (quality) |
 |  |  | item_precision | 1.0 |  |
 |  |  | item_recall | 1.0 |  |
-| Evidence fusion | 14 | agreement_accuracy | 1.0 | >= 0.95 (quality) |
+| Evidence fusion | 17 | agreement_accuracy | 1.0 | >= 0.95 (quality) |
 |  |  | conflict_resolution_accuracy | 1.0 | >= 0.95 (quality) |
 |  |  | unsafe_absence_count | 0 | <= 0 (critical) |
-| Provenance | 128 | traceability_coverage | 1.0 | >= 1.0 (critical) |
+| Provenance | 131 | traceability_coverage | 1.0 | >= 1.0 (critical) |
 | Uncertainty | 20 | handling_accuracy | 1.0 | >= 1.0 (critical) |
 |  |  | unsafe_absence_count | 0 | <= 0 (critical) |
 | Safety (end-to-end allergen dataset) | 65 | false_negative_rate | 0.0 |  |

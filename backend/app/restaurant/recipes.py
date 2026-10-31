@@ -111,11 +111,16 @@ def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -
                 recipe_version_id=version.id, allergen_id=allergens[code].id, evidence="Declared for the dish"
             )
         )
-    seen: set[str] = set()
+    seen: set[tuple[str, str]] = set()
+    names = {i.name.strip().lower() for i in recipe.ingredients}
     for cc in recipe.cross_contacts:
-        if cc.allergen_code in seen:
+        ing = " ".join(cc.ingredient.split())
+        if ing and ing.lower() not in names:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                                f"Cross-contact refers to '{ing}', which is not an ingredient of this recipe.")
+        if (cc.allergen_code, ing.lower()) in seen:
             continue
-        seen.add(cc.allergen_code)
+        seen.add((cc.allergen_code, ing.lower()))
         db.add(
             CrossContactRecord(
                 recipe_version_id=version.id,
@@ -124,6 +129,7 @@ def create_version(db: Session, item: MenuItem, recipe: RecipeIn, actor: User) -
                 description=cc.description,
                 kind=cc.kind,
                 status=cc.status,
+                ingredient=ing,
             )
         )
     db.flush()
@@ -149,7 +155,8 @@ def snapshot(version: RecipeVersion | None) -> RecipeIn:
         ],
         dish_allergen_codes=dish_codes,
         cross_contacts=[
-            CrossContactIn(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status)
+            CrossContactIn(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status,
+                           ingredient=c.ingredient)
             for c in version.cross_contacts
         ],
         cross_contact_reviewed=version.cross_contact_reviewed,
@@ -203,7 +210,8 @@ def version_out(db: Session, kb: KnowledgeBase, version: RecipeVersion) -> Recip
         ],
         dish_allergen_codes=sorted(dish_codes),
         cross_contacts=[
-            CrossContactOut(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status)
+            CrossContactOut(allergen_code=c.allergen.code, level=c.level, description=c.description, kind=c.kind, status=c.status,
+                            ingredient=c.ingredient)
             for c in version.cross_contacts
         ],
         cross_contact_reviewed=version.cross_contact_reviewed,
@@ -214,7 +222,7 @@ def version_out(db: Session, kb: KnowledgeBase, version: RecipeVersion) -> Recip
 
 def _contents(v: RecipeVersion) -> tuple[set[str], set[str], set[str]]:
     return ({i.name.lower() for i in v.ingredients}, {ar.allergen.code for ar in v.allergen_records},
-            {f"{c.allergen.code} ({c.kind.value})" for c in v.cross_contacts})
+            {f"{c.allergen.code} ({c.kind.value}" + (f", {c.ingredient}" if c.ingredient else "") + ")" for c in v.cross_contacts})
 
 
 def version_changes(version: RecipeVersion) -> VersionChanges | None:
@@ -241,7 +249,8 @@ def to_evidence(item: MenuItem, version: RecipeVersion, restaurant_name: str) ->
         ingredients=[i.name for i in version.ingredients],
         declared_allergens=sorted({ar.allergen.code for ar in version.allergen_records}),
         cross_contact=[
-            CrossContactDecl(c.allergen.code, c.level.value, c.description, kind=c.kind.value, status=c.status.value)
+            CrossContactDecl(c.allergen.code, c.level.value, c.description, kind=c.kind.value, status=c.status.value,
+                             ingredient=c.ingredient)
             for c in version.cross_contacts
         ],
         complete=True,

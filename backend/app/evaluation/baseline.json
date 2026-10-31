@@ -1,11 +1,11 @@
 {
  "cases": {
   "compound_ingredients": 12,
-  "evidence_fusion": 14,
+  "evidence_fusion": 17,
   "normalization": 43,
   "ocr_correction": 25,
   "ontology_mapping": 52,
-  "provenance": 128,
+  "provenance": 131,
   "safety": 65,
   "semantic_reasoning": 89,
   "synonyms": 49,

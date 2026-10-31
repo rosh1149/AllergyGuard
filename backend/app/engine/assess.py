@@ -35,7 +35,6 @@ from app.engine.text import (
     free_from_claims,
     normalize,
     split_precautions,
-    word_set,
 )
 from app.engine.types import (
     StageRecord,
@@ -71,6 +70,8 @@ class _Prepared:
     absence_ok: bool
     absence_reason: str = ""
     present_codes: set[str] = field(default_factory=set)
+    keys: dict[str, str] = field(default_factory=dict)  # item text -> what it is (concept slugs, else its text)
+    allergen_items: set[str] = field(default_factory=set)  # items carrying any (definite or possible) allergen
     normalized: list[NormalizedIngredient] = field(default_factory=list)
     collected_at: datetime | None = None
     age_days: int | None = None
@@ -145,7 +146,15 @@ def _prepare(kb: KnowledgeBase, src: EvidenceSource, ctx: AnalysisContext, now: 
         if incomplete:
             parts.append("The ingredient list looks incomplete: " + "; ".join(incomplete) + ".")
         reason = " ".join(parts)
+    keys, allergen_items = {}, set()
+    for n in normalized:
+        if n.counts and n.text in items:
+            r = n.resolution
+            keys[n.text] = "+".join(sorted({c.slug for c in r.concepts})) if r and r.concepts and r.status != "unresolved" else n.text
+            if r and (r.terms or r.paths):
+                allergen_items.add(n.text)
     return _Prepared(src, items, precautions, trusted, absence_ok=not reason, absence_reason=reason, normalized=normalized,
+                     keys=keys, allergen_items=allergen_items,
                      collected_at=now, age_days=age, fresh=fresh, unresolved=unresolved, incomplete=incomplete)
 
 
@@ -159,6 +168,7 @@ def _ref(
     path: str = "",
     certainty: str = "",
     n: NormalizedIngredient | None = None,
+    nodes: tuple[str, ...] = (),
 ) -> EvidenceRef:
     return EvidenceRef(
         source_id=p.src.id,
@@ -171,6 +181,7 @@ def _ref(
         concept=concept,
         relationship_path=path,
         certainty=certainty,
+        path_nodes=list(nodes),
         matched_as=n.text if n is not None and n.text != n.original else "",
         match_method=n.method if n is not None else "",
         match_confidence=n.confidence if n is not None else None,
@@ -213,11 +224,13 @@ def _collect(
                     if code in definite:
                         continue
                     definite.add(code)
-                    ev[code].append(_ref(p, presence_kind, shown, cm.alias, concept=cm.slug, path=path.text, certainty="definite", n=n))
+                    ev[code].append(_ref(p, presence_kind, shown, cm.alias, concept=cm.slug, path=path.text, certainty="definite", n=n,
+                                        nodes=path.nodes))
                     if p.trusted:
                         p.present_codes.add(code)
                 else:
-                    ev[code].append(_ref(p, "possible_source", shown, cm.alias, concept=cm.slug, path=path.text, certainty="possible", n=n))
+                    ev[code].append(_ref(p, "possible_source", shown, cm.alias, concept=cm.slug, path=path.text, certainty="possible", n=n,
+                                        nodes=path.nodes))
             for m in res.terms:
                 if m.allergen_code in claim_codes or m.allergen_code in definite:
                     continue
@@ -251,6 +264,7 @@ def _collect(
             if decl.allergen_code in kb.allergens:
                 qualifiers = [q for q in (CROSS_CONTACT_KINDS.get(decl.kind, decl.kind), decl.status if decl.status != "verified" else "") if q]
                 detail = (f"{decl.level.capitalize()} cross-contact" + (f" ({', '.join(qualifiers)})" if qualifiers else "")
+                          + (f" through the ingredient '{decl.ingredient}'" if decl.ingredient else "")
                           + (f": {decl.description}" if decl.description else ""))
                 ev[decl.allergen_code].append(_ref(p, cc_kind, detail=detail))
         for stmt in p.precautions:
@@ -320,6 +334,7 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared], ev: dict[str, list[
                              f"but its allergen declaration does not include {kb.name(code)}."),
                 source_ids=[p.src.id],
                 resolution=f"The ingredient is used: {kb.name(code)} is reported as present.",
+                handling="cautious_finding_kept",
             ))
 
     # Sources trusted enough to say what is in the item (stale ones included: their presence still counts).
@@ -334,19 +349,42 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared], ev: dict[str, list[
                 description=f"{_dated(has)} indicates {kb.name(code)}, but {_dated(lacks)} does not mention it.",
                 source_ids=[has.src.id, lacks.src.id],
                 resolution=f"The more cautious finding is kept: {kb.name(code)} is reported as present." + _newer(a, b),
+                handling="cautious_finding_kept",
             ))
-        if len(a.items) >= 3 and len(b.items) >= 3:
-            wa, wb = word_set(a.items), word_set(b.items)
-            overlap = len(wa & wb) / max(1, min(len(wa), len(wb)))
-            if overlap < LIST_MISMATCH_THRESHOLD:
-                list_mismatch = True
-                conflicts.append(Conflict(
-                    kind="ingredient_list_mismatch",
-                    description=(f"The ingredient lists from {_dated(a)} and {_dated(b)} differ substantially "
-                                 f"({overlap:.0%} overlap). They may describe different products, variants or recipe versions."),
-                    source_ids=[a.src.id, b.src.id],
-                    resolution="Neither list is used to rule allergens out; anything either list indicates is kept." + _newer(a, b),
-                ))
+        # Compare what the ingredients ARE (matched concepts), not how they are written: "wholegrain oat
+        # flakes" and "oat flakes" are the same ingredient.
+        ka, kb_ = set(a.keys.values()), set(b.keys.values())
+        only = {a.src.id: sorted(t for t, k in a.keys.items() if k not in kb_),
+                b.src.id: sorted(t for t, k in b.keys.items() if k not in ka)}
+        only = {sid: items for sid, items in only.items() if items}
+        if not only:
+            continue
+        overlap = len(ka & kb_) / max(1, min(len(ka), len(kb_)))
+        if len(ka) >= 3 and len(kb_) >= 3 and overlap < LIST_MISMATCH_THRESHOLD:
+            list_mismatch = True
+            conflicts.append(Conflict(
+                kind="ingredient_list_mismatch",
+                description=(f"The ingredient lists from {_dated(a)} and {_dated(b)} differ substantially "
+                             f"({overlap:.0%} of ingredients in common). They may describe different products, "
+                             "variants or recipe versions."),
+                source_ids=[a.src.id, b.src.id],
+                resolution="Neither list is used to rule allergens out; anything either list indicates is kept." + _newer(a, b),
+                handling="absence_blocked", status="unresolved", only_in=only,
+            ))
+        else:
+            carries = [t for p_ in (a, b) for t in only.get(p_.src.id, []) if t in p_.allergen_items]
+            listed = "; ".join(f"only {next(q.src.name for q in (a, b) if q.src.id == sid)} lists {', '.join(items)}"
+                               for sid, items in only.items())
+            conflicts.append(Conflict(
+                kind="ingredient_difference",
+                description=f"The ingredient lists from {_dated(a)} and {_dated(b)} differ slightly: {listed}.",
+                source_ids=[a.src.id, b.src.id],
+                resolution=("The differing ingredients carry no allergen link, so the difference does not change any "
+                            "allergen finding." if not carries else
+                            "Every allergen either list indicates is kept.") + _newer(a, b),
+                handling="no_allergen_effect" if not carries else "cautious_finding_kept",
+                only_in=only,
+            ))
 
     # Cross-contact: one source records it, another trusted source says it assessed cross-contact and found none.
     for code, refs in ev.items():
@@ -363,6 +401,7 @@ def _conflicts(kb: KnowledgeBase, prepared: list[_Prepared], ev: dict[str, list[
                                  f"but {_dated(p)} records none."),
                     source_ids=[*sorted(flagged), p.src.id],
                     resolution="The more cautious finding is kept: possible cross-contact is reported.",
+                    handling="cross_contact_kept",
                 ))
 
     for i, c in enumerate(conflicts, 1):
@@ -464,6 +503,11 @@ def assess(
     evidence, nonspecific = _collect(kb, prepared, custom_terms)
     t2 = time.perf_counter()
     conflicts, list_mismatch = _conflicts(kb, prepared, evidence)
+    for code, refs in evidence.items():  # complete each finding's provenance
+        for r in refs:
+            r.allergen_category = kb.name(code) if code in kb.allergens else code.removeprefix("custom:")
+            if r.concept and r.concept in kb.concepts:
+                r.foodon_id = kb.concepts[r.concept].foodon_id
     t3 = time.perf_counter()
 
     eligible = [p for p in prepared if p.absence_ok]
@@ -479,6 +523,13 @@ def assess(
         blocker = ""
     absence_supported = bool(eligible) and not list_mismatch
 
+    assessed_by = [p for p in prepared if p.trusted and p.src.cross_contact_assessed]
+
+    def cross_contact_status(refs: list[EvidenceRef]) -> str:
+        if any(r.kind in ("cross_contact", "candidate_cross_contact") for r in refs):
+            return "reported"
+        return "none_reported" if assessed_by else "not_assessed"
+
     assessments: dict[str, AllergenAssessment] = {}
     for code, info in kb.allergens.items():
         outcome, reasons = _decide(info.name, evidence.get(code, []), absence_supported, blocker)
@@ -492,6 +543,7 @@ def assess(
             regulated_in=kb.regulated_in(code),
             basis=_basis(outcome, evidence.get(code, [])),
             rules=rules_for(outcome, evidence.get(code, []), bool(eligible), list_mismatch),
+            cross_contact=cross_contact_status(evidence.get(code, [])),
         )
     for term in custom_terms:
         key = f"custom:{term}"
@@ -508,6 +560,7 @@ def assess(
             evidence=evidence.get(key, []),
             basis=_basis(outcome, evidence.get(key, [])),
             rules=rules_for(outcome, evidence.get(key, []), bool(eligible), list_mismatch),
+            cross_contact=cross_contact_status(evidence.get(key, [])),
         )
 
     rank = {o: i for i, o in enumerate(SEVERITY)}

@@ -76,7 +76,9 @@ function EvidenceLine({ e }: { e: EvidenceRef }) {
     <li>
       <span>{what && <strong>{what}</strong>}</span>
       {e.matched_as && <small> read as “{e.matched_as}”{e.match_method && METHODS[e.match_method] ? ` (${METHODS[e.match_method]})` : ""}</small>}
-      {e.relationship_path && <div><small className="muted">Link: {e.relationship_path}</small></div>}
+      {e.relationship_path && (
+        <div><small className="muted">Link: {e.relationship_path}{e.allergen_category && ` → ${e.allergen_category}`}{e.foodon_id && ` (${e.foodon_id})`}</small></div>
+      )}
       <div>
         <small className="muted">
           {e.source_reference || e.source_name}
@@ -88,6 +90,12 @@ function EvidenceLine({ e }: { e: EvidenceRef }) {
     </li>
   );
 }
+
+const CROSS_CONTACT: Record<string, string> = {
+  reported: "Cross-contact: reported (see above).",
+  none_reported: "Cross-contact: the records say it was checked and none was found.",
+  not_assessed: "Cross-contact: not stated by any source. That is not evidence of no cross-contact.",
+};
 
 function AllergenCard({ a }: { a: AllergenAssessment }) {
   const rules = a.rules ?? [];
@@ -105,6 +113,9 @@ function AllergenCard({ a }: { a: AllergenAssessment }) {
           <li key={i}>{r}</li>
         ))}
       </ul>
+      {a.cross_contact && a.cross_contact !== "reported" && (
+        <small className="muted">{CROSS_CONTACT[a.cross_contact]}</small>
+      )}
       {(a.evidence.length > 0 || rules.length > 0) && (
         <details className="inner">
           <summary>Why: evidence and rules</summary>
@@ -249,6 +260,7 @@ export function ResultView({ result, saved = true }: { result: AnalysisResult; s
             {result.conflicts.map((c, i) => (
               <li key={c.id || i}>
                 {c.description}
+                {c.status === "unresolved" && <strong> Unresolved.</strong>}
                 {c.resolution && <div><small>How it was handled: {c.resolution}</small></div>}
               </li>
             ))}

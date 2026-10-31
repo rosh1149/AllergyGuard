@@ -56,6 +56,9 @@ export interface EvidenceRef {
   source_verification?: string;
   source_as_of?: string | null;
   conflict_ids?: string[];
+  path_nodes?: string[];
+  foodon_id?: string | null;
+  allergen_category?: string;
 }
 
 export interface AllergenAssessment {
@@ -68,12 +71,16 @@ export interface AllergenAssessment {
   evidence: EvidenceRef[];
   basis?: string[];
   rules?: string[];
+  cross_contact?: "reported" | "none_reported" | "not_assessed";
   regulated_in?: string[];
 }
 
 export interface Conflict {
   id?: string;
   resolution?: string;
+  handling?: string;
+  status?: "resolved" | "unresolved";
+  only_in?: Record<string, string[]>;
   kind: string;
   allergen_code: string | null;
   description: string;
@@ -303,6 +310,7 @@ export interface CrossContactRecord {
   description: string;
   kind: CrossContactKind;
   status: CrossContactStatus;
+  ingredient?: string;
 }
 
 export interface VersionChanges {

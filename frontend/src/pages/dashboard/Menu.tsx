@@ -287,7 +287,7 @@ function RecipeSummary({ v, name }: { v: NonNullable<MenuItem["current_version"]
           <ul style={{ margin: "0.2rem 0 0", paddingLeft: "1.1rem" }}>
             {v.cross_contacts.map((c, i) => (
               <li key={i}>
-                {name(c.allergen_code)}: {CC_KINDS[c.kind] ?? c.kind} ({c.level})
+                {name(c.allergen_code)}: {CC_KINDS[c.kind] ?? c.kind} ({c.level}){c.ingredient && ` · via ${c.ingredient}`}
                 {c.description && ` · ${c.description}`} <small className="muted">· {CC_STATUS[c.status] ?? c.status}</small>
               </li>
             ))}

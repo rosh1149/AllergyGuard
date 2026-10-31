@@ -207,6 +207,8 @@ class CrossContactRecord(Base):
         Enum(CrossContactKind, name="cross_contact_kind"), default=CrossContactKind.other, server_default="other")
     status: Mapped[CrossContactStatus] = mapped_column(
         Enum(CrossContactStatus, name="cross_contact_status"), default=CrossContactStatus.verified, server_default="verified")
+    # The ingredient the risk comes through ("" = the dish as a whole), e.g. a supplier's facility.
+    ingredient: Mapped[str] = mapped_column(String(200), default="", server_default="")
 
     recipe_version: Mapped[RecipeVersion] = relationship(back_populates="cross_contacts")
     allergen: Mapped["Allergen"] = relationship()  # noqa: F821

@@ -11,6 +11,7 @@ from app.engine.service import get_knowledge_base, knowledge_version, load_knowl
 from app.knowledge.validation import validate_kb
 from app.seed.knowledge_seed import FOODON as FOODON_META
 from app.engine.assess import resolution_out
+from app.engine.decision_matrix import decision_matrix
 from app.engine.normalize import normalize_ingredients
 from app.engine.types import IngredientResolution
 from app.knowledge import workflow
@@ -39,6 +40,12 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge base"])
 class ResolveIn(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
     ocr: bool = False
+
+
+@router.get("/decision-matrix")
+def get_decision_matrix(_: CurrentUser) -> dict[str, Any]:
+    """How sources, rules and thresholds decide each outcome: the values the engine uses."""
+    return decision_matrix()
 
 
 @router.post("/resolve", response_model=list[IngredientResolution])

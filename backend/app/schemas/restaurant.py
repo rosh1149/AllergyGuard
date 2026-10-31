@@ -94,6 +94,7 @@ class CrossContactIn(BaseModel):
     description: str = Field(default="", max_length=1000)
     kind: CrossContactKind = CrossContactKind.other
     status: CrossContactStatus = CrossContactStatus.verified
+    ingredient: str = Field(default="", max_length=200)  # "" = the whole dish
 
 
 class RecipeIn(BaseModel):
@@ -145,6 +146,7 @@ class CrossContactOut(BaseModel):
     description: str
     kind: CrossContactKind = CrossContactKind.other
     status: CrossContactStatus = CrossContactStatus.verified
+    ingredient: str = Field(default="", max_length=200)  # "" = the whole dish
 
 
 class VersionChanges(BaseModel):
