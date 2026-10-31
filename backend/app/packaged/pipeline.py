@@ -3,17 +3,22 @@
 from __future__ import annotations
 
 import logging
+from contextlib import nullcontext
+from collections.abc import Callable
+from datetime import datetime
 from dataclasses import dataclass, field
 
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.engine.service import AssessmentLink, analyze_for_user
+from app.core.limits import image_job
+from app.core.timing import StageTimer
 from app.models.common import utcnow
-from app.packaged.snapshots import record_snapshot
+from app.packaged.snapshots import record_snapshot, saved_copy
 from app.engine.types import MIN_IDENTITY_CONFIDENCE, MIN_SOURCE_CONFIDENCE, AnalysisContext, AnalysisResult, EvidenceSource
 from app.models import ReviewKind
-from app.review.queue import ReviewFlag, queue_flags
+from app.review.queue import ReviewFlag, queue_flags_later
 from app.models import User
 from app.packaged.barcode import normalize_barcode, read_barcodes
 from app.packaged.images import LoadedImage
@@ -63,6 +68,7 @@ class Step(BaseModel):
     name: str
     status: str  # done | skipped | failed
     detail: str = ""
+    duration_ms: int | None = None
 
 
 class PackagedAnalysisOut(BaseModel):
@@ -92,6 +98,7 @@ class _Identity:
     candidates: list[ProductCandidate] = field(default_factory=list)
     ambiguous: bool = False  # several products matched about equally well
     query: str = ""
+    saved_copy_from: datetime | None = None  # set when a saved copy replaced an unreachable database
 
 
 FAILURE_MESSAGES = {
@@ -125,6 +132,7 @@ def _identify(
     guess: ProductGuess | None,
     name_hint: str,
     steps: list[Step],
+    fallback: Callable[[str], tuple[OffProduct, object] | None] | None = None,
 ) -> _Identity:
     ident = _Identity()
     if adapter.client is None:
@@ -133,7 +141,18 @@ def _identify(
     for code in barcodes:
         r = adapter.lookup(code)
         if r.status.failed:
-            return _failed(ident, steps, r)
+            saved = fallback(code) if fallback else None
+            if saved is None:
+                return _failed(ident, steps, r)
+            product, snap = saved
+            ident.product, ident.method, ident.confidence = product, "barcode", BARCODE_CONFIDENCE
+            ident.saved_copy_from = snap.last_seen
+            ident.limitations.append(
+                f"The product database could not be used ({r.status.value.replace('_', ' ')}), so a copy of its "
+                f"record saved on {snap.last_seen:%Y-%m-%d} was used."
+            )
+            steps.append(Step(name="product_lookup", status="done", detail=f"Used saved copy for barcode {code}."))
+            return ident
         if r.ok:
             ident.product, ident.method, ident.confidence = r.payload, "barcode", BARCODE_CONFIDENCE
             steps.append(Step(name="product_lookup", status="done", detail=r.detail))
@@ -239,6 +258,7 @@ def run_packaged_pipeline(
     steps: list[Step] = []
     limitations: list[str] = []
     now = utcnow()
+    timer = StageTimer()
     for i, img in enumerate(images, 1):
         for issue in img.issues:
             limitations.append(f"Photo {i}: {issue}" if len(images) > 1 else issue)
@@ -251,8 +271,12 @@ def run_packaged_pipeline(
             barcodes.append(code)
         else:
             limitations.append("The barcode entered is not a valid EAN/UPC number and was ignored.")
-    for img in images:
-        barcodes.extend(c for c in read_barcodes(img.image) if c not in barcodes)
+    with image_job() if images else nullcontext():  # CPU-heavy photo work is limited server-wide
+        with timer("barcode"):
+            for img in images:
+                barcodes.extend(c for c in read_barcodes(img.image) if c not in barcodes)
+        with timer("ocr"):
+            ocr_results = [(i, run_ocr(img.image)) for i, img in enumerate(images)]
     steps.append(
         Step(
             name="barcode",
@@ -261,8 +285,7 @@ def run_packaged_pipeline(
         )
     )
 
-    # 2. Label OCR
-    ocr_results = [(i, run_ocr(img.image)) for i, img in enumerate(images)]
+    # 2. Label OCR (read above, inside the photo-processing slot)
     ocr_available = bool(ocr_results) and all(o.available for _, o in ocr_results)
     picked = _pick_label(ocr_results)
     if images and not ocr_available:
@@ -279,7 +302,8 @@ def run_packaged_pipeline(
     # 3. Identification (barcode -> vision -> name)
     guess = None
     if not barcodes and images and use_vision:
-        guess = identify_product([img.image for img in images])
+        with timer("image_recognition"):
+            guess = identify_product([img.image for img in images])
         steps.append(
             Step(
                 name="image_recognition",
@@ -291,7 +315,9 @@ def run_packaged_pipeline(
         )
         if guess:
             barcodes.extend(c for c in [normalize_barcode(guess.barcode_digits)] if c)
-    ident = _identify(OpenFoodFactsAdapter(off), barcodes, guess, product_name, steps)
+    with timer("product_lookup"):
+        ident = _identify(OpenFoodFactsAdapter(off), barcodes, guess, product_name, steps,
+                          fallback=lambda code: saved_copy(db, code))
     limitations.extend(ident.limitations)
 
     # 4. Evidence
@@ -336,7 +362,10 @@ def run_packaged_pipeline(
                     "This product's database record has changed since we last saw it ("
                     + "; ".join(changes) + "). The product may have been reformulated: check the package label."
                 )
-            sources.append(OpenFoodFactsAdapter.to_evidence(p))
+            src = OpenFoodFactsAdapter.to_evidence(p)
+            if ident.saved_copy_from:
+                src.reference += f" (saved copy from {ident.saved_copy_from:%Y-%m-%d})"
+            sources.append(src)
             limitations.append(
                 "Product database entries are community-maintained and may not match the current recipe."
             )
@@ -354,12 +383,14 @@ def run_packaged_pipeline(
         identity_confidence=ident.confidence if p else None,
         identity_label=identity_label,
         limitations=limitations,
+        stages=timer.stages(steps),
+        started=timer.started,
     )
     result = analyze_for_user(
         db, user, sources, ctx,
         record=AssessmentLink(kind="packaged", barcode=p.barcode if p else None, product_snapshot_id=snapshot_id),
     )
-    queue_flags(db, _review_flags(ident, picked, images, ocr_available, identity_label), result.assessment_id)
+    queue_flags_later(_review_flags(ident, picked, images, ocr_available, identity_label), result.assessment_id)
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
 
     return PackagedAnalysisOut(

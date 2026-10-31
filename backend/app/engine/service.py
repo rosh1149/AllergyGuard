@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 from dataclasses import dataclass
 
 from sqlalchemy import func, select
@@ -11,7 +12,9 @@ from sqlalchemy.orm import Session, selectinload
 from app.engine.assess import assess
 from app.engine.explain import add_explanation
 from app.engine.knowledge import AllergenInfo, ConceptInfo, KnowledgeBase
-from app.engine.types import AllergyProfile, AnalysisContext, AnalysisResult, EvidenceSource
+from app.core.background import submit
+from app.core.observability import log_event
+from app.engine.types import AllergyProfile, AnalysisContext, AnalysisResult, EvidenceSource, StageRecord
 from app.models import (
     ACTIVE_STATUSES,
     Assessment,
@@ -166,6 +169,8 @@ def store_assessment(db: Session, user: User, result: AnalysisResult, link: Asse
         menu_item_id=link.menu_item_id,
         recipe_version_id=link.recipe_version_id,
         result={},
+        trace=[st.model_dump() for st in result.trace],
+        duration_ms=result.duration_ms,
         created_at=result.evaluated_at or utcnow(),
     )
     db.add(a)
@@ -187,9 +192,33 @@ def analyze_for_user(
     """Entry point for pipelines: the user's saved allergy profile is always applied.
 
     With `record`, the assessment is stored in the customer's history (result.assessment_id)."""
+    ctx = ctx or AnalysisContext()
+    started = ctx.started if ctx.started is not None else time.perf_counter()
     result = assess(get_knowledge_base(db), sources, profile_for(user), ctx)
-    record_unresolved(db, result)
+    t = time.perf_counter()
     result = add_explanation(result, use_llm=use_llm)
+    result.trace.append(StageRecord(name="explanation", duration_ms=round((time.perf_counter() - t) * 1000),
+                                    counts={"source": result.explanation_source}))
+    result.duration_ms = round((time.perf_counter() - started) * 1000)
     if record is not None:
         store_assessment(db, user, result, record)
+    # Queue unrecognised ingredient text for review after the response (it doesn't change this answer).
+    submit("record_unresolved", lambda s: record_unresolved(s, result))
+    _log_analysis(result, record)
     return result
+
+
+def _log_analysis(result: AnalysisResult, record: AssessmentLink | None) -> None:
+    log_event(
+        "analysis.completed",
+        kind=record.kind if record else "unrecorded",
+        assessment_id=result.assessment_id,
+        duration_ms=result.duration_ms,
+        overall_outcome=result.overall_outcome.value,
+        sources=len(result.sources),
+        sources_used_for_absence=sum(s.used_for_absence for s in result.sources),
+        conflicts=len(result.conflicts),
+        unresolved_items=sum(1 for i in result.ingredients if i.status == "unresolved"),
+        failed_stages=[st.name for st in result.trace if st.status == "failed"],
+        knowledge_version=result.knowledge_version,
+    )

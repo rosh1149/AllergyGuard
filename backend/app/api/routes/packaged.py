@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from app.api.deps import DB, CurrentCustomer
 from app.core.config import get_settings
 from app.packaged.images import ImageError, load_image
-from app.packaged.off import OpenFoodFactsClient
+from app.packaged.off import OFF_CACHE, OpenFoodFactsClient
 from app.packaged.pipeline import PackagedAnalysisOut, run_packaged_pipeline
 
 router = APIRouter(prefix="/analyze", tags=["analysis"])
@@ -14,7 +14,7 @@ MAX_IMAGES = 3
 
 
 def get_off_client() -> OpenFoodFactsClient | None:
-    return OpenFoodFactsClient()
+    return OpenFoodFactsClient(cache=OFF_CACHE)
 
 
 def load_uploads(images: list[UploadFile]) -> list:

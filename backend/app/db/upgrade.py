@@ -27,6 +27,8 @@ COLUMNS = [
     ("feedback_suggestions", "clarification_request", "TEXT NOT NULL DEFAULT ''"),
     ("feedback_suggestions", "clarification_response", "TEXT NOT NULL DEFAULT ''"),
     ("feedback_suggestions", "clarified_at", "TIMESTAMP WITH TIME ZONE"),
+    ("assessments", "trace", "JSON NOT NULL DEFAULT '[]'"),
+    ("assessments", "duration_ms", "INTEGER"),
 ]
 
 

@@ -42,6 +42,20 @@ class Settings(BaseSettings):
     # allergens out. Restaurant recipes: days since staff last verified them. Product database
     # entries: days since the entry was last updated.
     restaurant_record_max_age_days: int = 365
+    # Open Food Facts response cache (seconds; 0 disables). Failures are never cached.
+    off_cache_ttl_seconds: int = 6 * 3600
+    off_not_found_ttl_seconds: int = 600
+    off_search_ttl_seconds: int = 3600
+    # Work done after the response (unresolved-ingredient queue, review queue). "inline" runs it
+    # before responding (tests, debugging).
+    background_inline: bool = False
+    background_workers: int = 2
+    # At most this many photo-processing jobs (OCR, barcode, recognition) run at once per worker.
+    max_concurrent_image_jobs: int = 2
+    image_job_wait_seconds: int = 30
+    # Failed-login throttling per email address and client.
+    login_max_failures: int = 5
+    login_lockout_minutes: int = 15
     product_record_max_age_days: int = 1095
 
     # Packaged-food pipeline

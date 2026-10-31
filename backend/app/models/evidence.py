@@ -52,5 +52,7 @@ class Assessment(Base):
     menu_item_id: Mapped[int | None] = mapped_column(ForeignKey("menu_items.id", ondelete="SET NULL"))
     recipe_version_id: Mapped[int | None] = mapped_column(ForeignKey("recipe_versions.id", ondelete="SET NULL"))
     result: Mapped[dict] = mapped_column(JSON)  # the full result as returned
+    trace: Mapped[list] = mapped_column(JSON, default=list)  # processing stages (no personal data)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
     note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

@@ -1,3 +1,5 @@
+import time
+
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
@@ -20,5 +22,5 @@ class TextAnalysisIn(BaseModel):
 def analyze_text(data: TextAnalysisIn, user: CurrentCustomer, db: DB) -> AnalysisResult:
     """Check an ingredient list typed in from a label, against the customer's saved allergies."""
     label = LabelTextAdapter().convert(data.ingredients_text, data.may_contain_text, data.product_name, utcnow())
-    ctx = AnalysisContext(identity_label=data.product_name)
+    ctx = AnalysisContext(identity_label=data.product_name, started=time.perf_counter())
     return analyze_for_user(db, user, label.sources, ctx, record=AssessmentLink(kind="text"))

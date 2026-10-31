@@ -1,6 +1,8 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 
 from app.api.deps import DB, CurrentUser
+from app.core import throttle
+from app.core.observability import log_event
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models import User, UserRole
 from app.schemas.auth import CustomerRegister, LoginIn, RestaurantRegister, TokenOut, UserOut
@@ -50,10 +52,20 @@ def register_restaurant(data: RestaurantRegister, db: DB) -> TokenOut:
 
 
 @router.post("/login", response_model=TokenOut)
-def login(data: LoginIn, db: DB) -> TokenOut:
-    user = db.scalar(select(User).where(User.email == data.email.lower()))
+def login(data: LoginIn, db: DB, request: Request) -> TokenOut:
+    email = data.email.lower()
+    client = request.client.host if request.client else ""
+    wait = throttle.locked_for(email, client)
+    if wait:
+        log_event("auth.login_locked")
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Too many failed attempts. Try again later.",
+                            headers={"Retry-After": str(wait)})
+    user = db.scalar(select(User).where(User.email == email))
     if user is None or not user.is_active or not verify_password(data.password, user.password_hash):
+        throttle.record_failure(email, client)
+        log_event("auth.login_failed")
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Incorrect email or password.")
+    throttle.clear(email, client)
     return _token(user)
 
 

@@ -266,6 +266,48 @@ conclusion:
   `POST /api/review-queue/{id}/decision`. Restaurant staff see and resolve their own dish items at
   `/api/restaurants/{id}/review-queue`, and each decision is audited.
 
+## Observability, caching and security (Step E)
+
+**Decision logging.**
+- Every allergen outcome lists the decision `rules` that produced it (`app/engine/rules.py`): for
+  example `R1.present_ingredient`, `R2.cross_contact_declared`, `R5.not_listed_verified`, or
+  `R6.absence_not_supported` with the reason absence was blocked (`B.no_eligible_source`,
+  `B.list_mismatch`).
+- Every result carries a `trace` of processing stages with timings and counts (barcode, OCR, product
+  lookup or dish match, normalization, concept mapping, fusion, decision, explanation) and its total
+  `duration_ms`. Both are stored with the assessment.
+- Traces and logs contain counts and statuses only: no ingredient text, allergy profile or identity.
+- Each request gets an `X-Request-ID`, and each analysis writes one JSON log line
+  (`analysis.completed`).
+
+**Metrics.** `GET /api/admin/metrics?hours=24` (admin) reports, from stored assessments:
+- volume by kind and outcome
+- p50/p95 latency per pipeline and per stage
+- share of checks with conflicts, low-confidence identification, unresolved ingredients or failed
+  stages
+- how often each decision rule fired
+
+It also reports open review items, source-adapter health, cache hit rates, background jobs and
+photo-job usage.
+
+**Caching and performance.**
+- Normalization results are cached per knowledge-base version (an approved knowledge change starts a
+  fresh cache). A repeat list takes about 0.5 ms instead of about 11 ms.
+- Open Food Facts answers are cached: products for 6 h, "not found" for 10 min, searches for 1 h.
+  Failures are never cached.
+- When Open Food Facts is down or rate-limited, the last saved copy of the product record is used,
+  labelled with its date. Freshness rules still apply.
+- Queue bookkeeping (unresolved ingredients, review queue) runs after the response on a small thread
+  pool (`BACKGROUND_INLINE=true` runs it immediately, as the tests do).
+- At most `MAX_CONCURRENT_IMAGE_JOBS` photo-processing jobs run at once.
+
+**Security re-check.** See [SECURITY.md](SECURITY.md). Step E adds:
+- an automated tenant-isolation sweep over every dashboard route
+- failed-login throttling
+- security headers and `no-store` caching on API responses
+- customer data export and account deletion (`GET /api/me/export`, `DELETE /api/me`)
+- a platform audit log for administrator actions
+
 ## Packaged-food pipeline (Part 3)
 
 `POST /api/analyze/packaged` (multipart): up to 3 photos (`images`), and/or a typed `barcode`,
@@ -398,6 +440,8 @@ the API enforces the same rules.
 | GET / POST | `/api/review-queue`, `/summary`, `/{id}/decision` | admin |
 | GET / POST | `/api/restaurants/{id}/review-queue`, `/{item_id}/decision` | restaurant staff |
 | GET | `/api/sources` | admin: source adapters and their health |
+| GET | `/api/admin/metrics`, `/api/admin/audit` | admin: monitoring and platform audit log |
+| GET / DELETE | `/api/me/export`, `/api/me` | customer: export data, delete account |
 
 ## Layout
 

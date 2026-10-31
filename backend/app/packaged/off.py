@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 
 import httpx
 
+from app.core.cache import MISSING, TTLCache
 from app.core.config import get_settings
 from app.core.similarity import name_similarity  # noqa: F401  (re-exported)
 
@@ -98,9 +99,15 @@ def _timestamp(value) -> datetime | None:
         return None
 
 
+# Shared cache for the production client. Product records change rarely; "not found" is cached
+# briefly so a newly added product shows up soon. Failures are never cached.
+OFF_CACHE = TTLCache("open_food_facts", max_items=5000)
+
+
 class OpenFoodFactsClient:
-    def __init__(self, http: httpx.Client | None = None):
+    def __init__(self, http: httpx.Client | None = None, cache: TTLCache | None = None):
         s = get_settings()
+        self.cache = cache
         self.base_url = s.off_base_url.rstrip("/")
         self.http = http or httpx.Client(
             timeout=s.off_timeout_seconds, headers={"User-Agent": s.off_user_agent}
@@ -126,6 +133,18 @@ class OpenFoodFactsClient:
         return data
 
     def get_product(self, barcode: str) -> OffProduct | None:
+        if self.cache is not None:
+            hit = self.cache.get(("product", barcode))
+            if hit is not MISSING:
+                return hit
+        product = self._get_product(barcode)
+        if self.cache is not None:
+            s = get_settings()
+            self.cache.set(("product", barcode), product,
+                           s.off_cache_ttl_seconds if product else s.off_not_found_ttl_seconds)
+        return product
+
+    def _get_product(self, barcode: str) -> OffProduct | None:
         data = self._get(f"/api/v2/product/{barcode}.json", {"fields": FIELDS})
         if data.get("status") != 1 or not data.get("product"):
             return None
@@ -136,6 +155,17 @@ class OpenFoodFactsClient:
         return _product(raw, self.base_url)
 
     def search(self, query: str, limit: int = 5) -> list[OffProduct]:
+        key = ("search", " ".join(query.lower().split()), limit)
+        if self.cache is not None:
+            hit = self.cache.get(key)
+            if hit is not MISSING:
+                return hit
+        found = self._search(query, limit)
+        if self.cache is not None:
+            self.cache.set(key, found, get_settings().off_search_ttl_seconds)
+        return found
+
+    def _search(self, query: str, limit: int) -> list[OffProduct]:
         data = self._get(
             "/cgi/search.pl",
             {

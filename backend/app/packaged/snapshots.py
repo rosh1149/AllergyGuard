@@ -8,6 +8,7 @@ import json
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.models import ProductSnapshot
 from app.models.common import utcnow
 from app.packaged.off import OffProduct
@@ -68,3 +69,21 @@ def record_snapshot(db: Session, p: OffProduct) -> tuple[ProductSnapshot, list[s
     if nt != ot:
         changes.append("trace warnings changed")
     return snap, changes or ["the record changed"]
+
+
+def saved_copy(db: Session, barcode: str) -> tuple[OffProduct, ProductSnapshot] | None:
+    """The most recently seen record for a barcode, used when the product database is unreachable."""
+    snap = db.scalar(
+        select(ProductSnapshot)
+        .where(ProductSnapshot.barcode == barcode, ProductSnapshot.source == SOURCE)
+        .order_by(ProductSnapshot.last_seen.desc(), ProductSnapshot.id.desc())
+        .limit(1)
+    )
+    if snap is None:
+        return None
+    p = OffProduct(
+        barcode=snap.barcode, name=snap.name, brand="", quantity="", ingredients_text=snap.ingredients_text,
+        allergen_codes=list(snap.allergen_codes), trace_codes=list(snap.trace_codes),
+        url=f"{get_settings().off_base_url.rstrip('/')}/product/{snap.barcode}", updated_at=snap.source_updated_at,
+    )
+    return p, snap

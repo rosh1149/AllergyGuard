@@ -1,4 +1,4 @@
-from tests.helpers import add_item, auth, login, new_customer, new_restaurant
+from tests.helpers import add_item, login, new_customer, new_restaurant
 
 
 def test_menu_and_recipe_versions(client):

@@ -7,7 +7,6 @@ from app.engine import (
     AnalysisContext,
     CrossContactDecl,
     EvidenceSource,
-    KnowledgeBase,
     Outcome,
     SourceType,
     assess,

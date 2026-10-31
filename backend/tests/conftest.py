@@ -4,6 +4,7 @@ os.environ["DATABASE_URL"] = os.environ.get(
     "TEST_DATABASE_URL", "postgresql+psycopg://allergyguard:allergyguard@localhost:5432/allergyguard_test"
 )
 os.environ["SEED_DEMO_DATA"] = "true"
+os.environ["BACKGROUND_INLINE"] = "true"  # queue work runs before the response, so tests can see it
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models import ReviewItem, ReviewKind, ReviewStatus, User
+from app.core.background import submit
 from app.models.common import utcnow
 
 
@@ -60,3 +61,9 @@ def resolve(db: Session, item: ReviewItem, actor: User, new_status: ReviewStatus
     item.resolved_at = utcnow()
     db.flush()
     return item
+
+
+def queue_flags_later(flags: list[ReviewFlag], assessment_id: int | None) -> None:
+    """Add flags to the review queue after the response has been sent."""
+    if flags:
+        submit("review_queue", lambda db: queue_flags(db, flags, assessment_id))

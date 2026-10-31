@@ -21,12 +21,14 @@ gluten); a parent indicated without its specific source leaves each child as a p
 
 from __future__ import annotations
 
-from collections import defaultdict
+import time
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from itertools import combinations
 
 from app.engine.knowledge import KnowledgeBase, custom_match
+from app.engine.rules import rules_for
 from app.engine.normalize import NormalizedIngredient, normalize_ingredients
 from app.engine.text import (
     free_from_claims,
@@ -35,6 +37,7 @@ from app.engine.text import (
     word_set,
 )
 from app.engine.types import (
+    StageRecord,
     ABSENCE_CAPABLE,
     AUTHORITATIVE,
     IDENTITY_DEPENDENT,
@@ -445,9 +448,13 @@ def assess(
     ctx = ctx or AnalysisContext()
     now = ctx.now or datetime.now(timezone.utc)
     custom_terms = [normalize(t) for t in profile.custom_terms if normalize(t)]
+    t0 = time.perf_counter()
     prepared = [_prepare(kb, s, ctx, now) for s in sources]
+    t1 = time.perf_counter()
     evidence, nonspecific = _collect(kb, prepared, custom_terms)
+    t2 = time.perf_counter()
     conflicts, list_mismatch = _conflicts(kb, prepared, evidence)
+    t3 = time.perf_counter()
 
     eligible = [p for p in prepared if p.absence_ok]
     if not eligible:
@@ -474,6 +481,7 @@ def assess(
             evidence=evidence.get(code, []),
             regulated_in=kb.regulated_in(code),
             basis=_basis(outcome, evidence.get(code, [])),
+            rules=rules_for(outcome, evidence.get(code, []), bool(eligible), list_mismatch),
         )
     for term in custom_terms:
         key = f"custom:{term}"
@@ -489,6 +497,7 @@ def assess(
             reasons=reasons,
             evidence=evidence.get(key, []),
             basis=_basis(outcome, evidence.get(key, [])),
+            rules=rules_for(outcome, evidence.get(key, []), bool(eligible), list_mismatch),
         )
 
     rank = {o: i for i, o in enumerate(SEVERITY)}
@@ -565,7 +574,11 @@ def assess(
         for p in prepared
     ]
 
+    t4 = time.perf_counter()
+    trace = list(ctx.stages) + _engine_stages(prepared, conflicts, eligible, list_mismatch, yours,
+                                              (t0, t1, t2, t3, t4), ctx.identity_confidence)
     return AnalysisResult(
+        trace=trace,
         overall_outcome=overall,
         overall_label=overall.label,
         identity_label=ctx.identity_label,
@@ -579,6 +592,32 @@ def assess(
         knowledge_version=kb.version,
         evaluated_at=now,
     )
+
+
+def _ms(a: float, b: float) -> int:
+    return round((b - a) * 1000)
+
+
+def _engine_stages(prepared, conflicts, eligible, list_mismatch, yours, t, identity_confidence) -> list[StageRecord]:
+    """Counts only: no ingredient text, no allergy profile."""
+    items = [n for p in prepared for n in p.normalized if n.counts]
+    methods = Counter(n.method for n in items)
+    statuses = Counter(n.resolution.status for n in items if n.resolution is not None)
+    rules = Counter(r for a in yours for r in a.rules)
+    return [
+        StageRecord(name="normalization", duration_ms=_ms(t[0], t[1]),
+                    counts={"sources": len(prepared), "items": len(items),
+                            **{f"method_{k}": v for k, v in sorted(methods.items())}}),
+        StageRecord(name="concept_mapping", duration_ms=_ms(t[1], t[2]),
+                    counts={f"status_{k}": v for k, v in sorted(statuses.items())}),
+        StageRecord(name="fusion", duration_ms=_ms(t[2], t[3]),
+                    counts={"eligible_for_absence": len(eligible), "list_mismatch": int(list_mismatch),
+                            **({"identity_confidence": identity_confidence} if identity_confidence is not None else {}),
+                            "conflicts": len(conflicts),
+                            **{f"conflict_{k}": v for k, v in sorted(Counter(c.kind for c in conflicts).items())}}),
+        StageRecord(name="decision", duration_ms=_ms(t[3], t[4]),
+                    counts={"allergens_checked": len(yours), **{f"rule_{k}": v for k, v in sorted(rules.items())}}),
+    ]
 
 
 BASIS = {

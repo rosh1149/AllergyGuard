@@ -11,6 +11,7 @@ from app.api.deps import DB, EDITORS, ANY_MEMBER, CurrentAdmin
 from app.models import ReviewItem, ReviewKind, ReviewStatus, RestaurantMembership, UnresolvedIngredient, UnresolvedStatus
 from app.restaurant.recipes import audit
 from app.review.queue import resolve
+from app.services.admin_audit import admin_audit
 
 admin_router = APIRouter(prefix="/review-queue", tags=["review queue (admin)"])
 restaurant_router = APIRouter(prefix="/restaurants/{restaurant_id}/review-queue", tags=["restaurant dashboard"])
@@ -92,6 +93,8 @@ def admin_decide(item_id: int, data: ReviewDecisionIn, admin: CurrentAdmin, db: 
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Review item not found.")
     resolve(db, item, admin, data.status, data.note)
     db.commit()
+    admin_audit(db, admin, f"review.{data.status.value}", "review_item", item.id,
+                {"kind": item.kind, "restaurant_id": item.restaurant_id, "note": data.note})
     return _out(item)
 
 

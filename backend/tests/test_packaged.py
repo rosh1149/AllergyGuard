@@ -194,7 +194,8 @@ def test_barcode_not_in_database(client, customer, off):
 
 def test_database_unreachable(client, customer, off):
     off.fail = True
-    body = post(client, customer, [label_image()], barcode=BARCODE).json()
+    # A barcode never seen before (no saved copy to fall back on).
+    body = post(client, customer, [label_image()], barcode="4006381333931").json()
     assert any("could not be reached" in lim for lim in body["result"]["limitations"])
     assert mine(body)["milk"] == "PRESENT"  # the label still works
     assert [s for s in body["steps"] if s["name"] == "product_lookup"][0]["status"] == "failed"

@@ -6,6 +6,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.api.routes import (
+    account,
+    admin,
     allergens,
     analyze,
     auth,
@@ -19,7 +21,9 @@ from app.api.routes import (
     restaurants,
     review,
 )
+from app.core import background
 from app.core.config import get_settings
+from app.core.observability import RequestContextMiddleware
 from app.db.init_db import init_db
 from app.db.session import engine
 
@@ -30,10 +34,12 @@ logging.basicConfig(level=logging.INFO)
 async def lifespan(_: FastAPI):
     init_db()
     yield
+    background.shutdown()
 
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name, version="0.1.0", lifespan=lifespan)
+app.add_middleware(RequestContextMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,
@@ -57,6 +63,8 @@ app.include_router(history.router, prefix=API)
 app.include_router(review.admin_router, prefix=API)
 app.include_router(review.restaurant_router, prefix=API)
 app.include_router(review.sources_router, prefix=API)
+app.include_router(admin.router, prefix=API)
+app.include_router(account.router, prefix=API)
 
 
 @app.get(f"{API}/health", tags=["health"])

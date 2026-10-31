@@ -134,6 +134,15 @@ class EvidenceSource:
     cross_contact_assessed: bool | None = None
 
 
+class StageRecord(BaseModel):
+    """One processing stage of an analysis, for debugging and monitoring (no personal data)."""
+
+    name: str  # barcode | ocr | product_lookup | dish_match | normalization | concept_mapping | fusion | decision ...
+    status: str = "done"  # done | skipped | failed
+    duration_ms: int | None = None
+    counts: dict[str, int | float | str] = Field(default_factory=dict)
+
+
 @dataclass
 class AnalysisContext:
     # Confidence that the identified product/dish is the right one (None = not applicable).
@@ -141,6 +150,8 @@ class AnalysisContext:
     identity_label: str = ""  # e.g. "Brand X Oat Biscuits 200g" or "Butter Chicken"
     limitations: list[str] = field(default_factory=list)  # pipeline-level, e.g. "Image is blurry"
     now: datetime | None = None  # evaluation time (defaults to the current time)
+    stages: list[StageRecord] = field(default_factory=list)  # pipeline stages before the engine
+    started: float | None = None  # time.perf_counter() when the request started, for total latency
 
 
 @dataclass
@@ -212,6 +223,8 @@ class AllergenAssessment(BaseModel):
     # cross_contact | possible_source | unverified_source | free_from_claim |
     # not_found_in_verified_records | insufficient_evidence
     basis: list[str] = Field(default_factory=list)
+    # The decision rules that produced the outcome (see app/engine/rules.py), for auditing.
+    rules: list[str] = Field(default_factory=list)
 
 
 class Conflict(BaseModel):
@@ -258,6 +271,9 @@ class AnalysisResult(BaseModel):
     knowledge_version: int = 0
     assessment_id: int | None = None  # the stored record of this assessment (set by the service)
     evaluated_at: datetime | None = None
+    # Processing stages with timings and counts (pipeline + engine). Contains no personal data.
+    trace: list[StageRecord] = Field(default_factory=list)
+    duration_ms: int | None = None
     explanation: str = ""
     explanation_source: str = "template"  # template | llm
     disclaimer: str = (

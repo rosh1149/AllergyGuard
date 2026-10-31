@@ -29,8 +29,9 @@ from app.models import (
 from app.packaged.images import LoadedImage
 from app.packaged.pipeline import Step
 from app.restaurant.fallback import RecipeSource, public_recipe_candidates, staff_questions
+from app.core.timing import StageTimer
 from app.restaurant.recipes import current_version
-from app.review.queue import ReviewFlag, queue_flags
+from app.review.queue import ReviewFlag, queue_flags_later
 from app.sources.restaurant import CustomerReportsAdapter, PublicRecipeAdapter, RestaurantRecordAdapter
 from app.restaurant.vision import identify_dish
 
@@ -135,6 +136,7 @@ def run_restaurant_pipeline(
     link = AssessmentLink(kind="restaurant", restaurant_id=restaurant_id)
     flags: list[ReviewFlag] = []
     needs_confirmation = False
+    timer = StageTimer()
 
     if restaurant_id is not None:
         restaurant = db.get(Restaurant, restaurant_id)
@@ -167,14 +169,16 @@ def run_restaurant_pipeline(
             steps.append(Step(name="dish_match", status="done", detail=f"Selected from menu: {item.name}."))
         else:
             if images and use_ai:
-                guess = identify_dish([i.image for i in images], [i.name for i in menu])
+                with timer("dish_recognition"):
+                    guess = identify_dish([i.image for i in images], [i.name for i in menu])
                 steps.append(Step(
                     name="dish_recognition",
                     status="done" if guess else "skipped",
                     detail=(guess.menu_choice or guess.dish_description or "Not recognised") if guess
                     else "Photo recognition is not configured.",
                 ))
-            matches = _match_dish(menu, dish_name, guess.menu_choice if guess else "", guess.confidence if guess else 0.0)
+            with timer("dish_match"):
+                matches = _match_dish(menu, dish_name, guess.menu_choice if guess else "", guess.confidence if guess else 0.0)
             steps.append(Step(
                 name="dish_match",
                 status="done",
@@ -215,9 +219,10 @@ def run_restaurant_pipeline(
                     {"matched_item": item.name, "method": chosen.method, "confidence": chosen.confidence}, restaurant.id,
                 ))
             dish_label = item.name
-            records = RestaurantRecordAdapter().fetch(item, version, restaurant.name)
-            sources.extend(records.sources)
-            reports = CustomerReportsAdapter().fetch(db, item, version)
+            with timer("restaurant_records"):
+                records = RestaurantRecordAdapter().fetch(item, version, restaurant.name)
+                sources.extend(records.sources)
+                reports = CustomerReportsAdapter().fetch(db, item, version)
             sources.extend(reports.sources)
             older_reports = reports.payload or 0
             if reports.status.failed:
@@ -249,7 +254,8 @@ def run_restaurant_pipeline(
     else:
         info = RestaurantInfo(registered=False, name=restaurant_name.strip() or "Unregistered restaurant", location=location.strip())
         if images and use_ai and not dish_name:
-            guess = identify_dish([i.image for i in images], [])
+            with timer("dish_recognition"):
+                guess = identify_dish([i.image for i in images], [])
             steps.append(Step(
                 name="dish_recognition",
                 status="done" if guess else "skipped",
@@ -264,7 +270,8 @@ def run_restaurant_pipeline(
         public = None
         if dish_label and use_ai:
             context = ", ".join(p for p in (info.name if not info.registered or info.restaurant_id else "", info.location) if p)
-            public = PublicRecipeAdapter(public_recipe_candidates).fetch(dish_label, context)
+            with timer("public_recipes"):
+                public = PublicRecipeAdapter(public_recipe_candidates).fetch(dish_label, context)
         if public is not None and public.ok:
             recipe_sources = public.payload.sources
             sources.extend(public.sources)
@@ -284,9 +291,11 @@ def run_restaurant_pipeline(
         identity_confidence=identity_conf,
         identity_label=f"{dish_label} at {info.name}" + (f" ({info.branch_name})" if info.branch_name else "") if dish_label else info.name,
         limitations=limitations,
+        stages=timer.stages(steps),
+        started=timer.started,
     )
     result = analyze_for_user(db, user, sources, ctx, record=link)
-    queue_flags(db, flags, result.assessment_id)
+    queue_flags_later(flags, result.assessment_id)
     steps.append(Step(name="analysis", status="done", detail=result.overall_label))
     return RestaurantAnalysisOut(
         result=result,

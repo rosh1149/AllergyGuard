@@ -12,6 +12,7 @@ from app.engine.assess import resolution_out
 from app.engine.normalize import normalize_ingredients
 from app.engine.types import IngredientResolution
 from app.knowledge import workflow
+from app.services.admin_audit import admin_audit
 from app.models import (
     ConceptAlias,
     ConceptRelation,
@@ -151,7 +152,9 @@ def _proposal_out(p: KnowledgeProposal) -> dict[str, Any]:
 
 @router.post("/proposals", status_code=status.HTTP_201_CREATED)
 def create_proposal(data: ProposalIn, admin: CurrentAdmin, db: DB) -> dict[str, Any]:
-    return _proposal_out(workflow.propose(db, admin, data.kind, data.payload, data.reason, data.source))
+    p = workflow.propose(db, admin, data.kind, data.payload, data.reason, data.source)
+    admin_audit(db, admin, "knowledge.proposed", "knowledge_proposal", p.id, {"kind": p.kind.value})
+    return _proposal_out(p)
 
 
 @router.get("/proposals")
@@ -167,7 +170,9 @@ def decide_proposal(proposal_id: int, data: DecisionIn, admin: CurrentAdmin, db:
     p = db.get(KnowledgeProposal, proposal_id)
     if p is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Proposal not found.")
-    return _proposal_out(workflow.decide(db, admin, p, data.approve, data.note))
+    p = workflow.decide(db, admin, p, data.approve, data.note)
+    admin_audit(db, admin, f"knowledge.{p.status.value}", "knowledge_proposal", p.id, {"note": data.note})
+    return _proposal_out(p)
 
 
 # ---- unresolved ingredients ----
@@ -189,7 +194,7 @@ def list_unresolved(_: CurrentAdmin, db: DB, unresolved_status: Annotated[Unreso
 
 
 @router.post("/unresolved/{item_id}")
-def review_unresolved(item_id: int, data: UnresolvedDecisionIn, _: CurrentAdmin, db: DB) -> dict[str, Any]:
+def review_unresolved(item_id: int, data: UnresolvedDecisionIn, admin: CurrentAdmin, db: DB) -> dict[str, Any]:
     u = db.get(UnresolvedIngredient, item_id)
     if u is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Item not found.")
@@ -200,4 +205,6 @@ def review_unresolved(item_id: int, data: UnresolvedDecisionIn, _: CurrentAdmin,
         u.resolved_concept_id = c.id
     u.status, u.note = data.status, data.note
     db.commit()
+    admin_audit(db, admin, f"unresolved.{data.status.value}", "unresolved_ingredient", u.id,
+                {"concept": data.concept, "note": data.note})
     return {"id": u.id, "status": u.status.value}

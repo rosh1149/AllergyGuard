@@ -76,7 +76,7 @@ def test_rate_limit_is_reported_in_analysis(client):
     cust = new_customer(client, codes=("milk",))
     app.dependency_overrides[get_off_client] = lambda: off_with(lambda req: httpx.Response(429))
     try:
-        body = post(client, cust, barcode=BARCODE).json()
+        body = post(client, cust, barcode="4006381333924").json()  # never seen: no saved copy
     finally:
         app.dependency_overrides.pop(get_off_client, None)
     assert any("too many requests" in lim for lim in body["result"]["limitations"])

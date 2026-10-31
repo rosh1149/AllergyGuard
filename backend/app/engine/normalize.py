@@ -22,6 +22,10 @@ guess is kept only as a suggestion.
 
 from __future__ import annotations
 
+import copy
+import threading
+from collections import OrderedDict
+
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -320,7 +324,40 @@ def _qualify(kb: KnowledgeBase, head: NormalizedIngredient, kids: list[Normalize
     return True
 
 
+NORMALIZATION_CACHE_SIZE = 4096
+_cache_stats = {"hits": 0, "misses": 0}
+_cache_lock = threading.Lock()
+
+
+def normalization_cache_stats() -> dict:
+    with _cache_lock:
+        return dict(_cache_stats)
+
+
 def normalize_ingredients(kb: KnowledgeBase, text: str, ocr: bool = False) -> list[NormalizedIngredient]:
+    """Cached per knowledge-base instance (a new knowledge version gets a fresh cache) and per fuzzy
+    settings. Callers get their own copy, so changing a result never affects the cache."""
+    s = get_settings()
+    key = (text, ocr, s.fuzzy_phrase_threshold, s.fuzzy_word_threshold, s.fuzzy_min_length, s.fuzzy_margin)
+    with _cache_lock:
+        cache: OrderedDict = kb.__dict__.setdefault("_normalize_cache", OrderedDict())
+        hit = cache.get(key)
+        if hit is not None:
+            cache.move_to_end(key)
+            _cache_stats["hits"] += 1
+        else:
+            _cache_stats["misses"] += 1
+    if hit is not None:
+        return copy.deepcopy(hit)
+    out = _normalize_ingredients(kb, text, ocr)
+    with _cache_lock:
+        cache[key] = copy.deepcopy(out)
+        while len(cache) > NORMALIZATION_CACHE_SIZE:
+            cache.popitem(last=False)
+    return out
+
+
+def _normalize_ingredients(kb: KnowledgeBase, text: str, ocr: bool = False) -> list[NormalizedIngredient]:
     parsed = parse_ingredients(text)
     out: list[NormalizedIngredient] = []
     by_item: dict[int, NormalizedIngredient] = {}
