@@ -1,11 +1,11 @@
-"""Additive schema upgrades for databases created by earlier versions.
+"""Legacy additive upgrades, kept only to adopt databases created before Alembic was introduced.
 
-`create_all` creates missing tables but never changes existing ones. Each entry here adds one column
-(and its enum type) if it is missing. Only additive, idempotent changes belong here; anything that
-rewrites or drops data needs a real migration tool (Alembic) before production use.
+Each entry adds one column (and its enum type) if it is missing, bringing such a database to the
+Alembic baseline revision (0001) before it is stamped; see app.db.migrate. This list is frozen: new
+schema changes are Alembic migrations in backend/migrations/versions/.
 """
 
-from sqlalchemy import Engine, text
+from sqlalchemy import Connection, Engine, text
 
 ENUMS = {
     "cross_contact_kind": ["shared_equipment", "shared_fryer", "preparation_area", "utensils", "storage",
@@ -42,13 +42,17 @@ COLUMNS = [
 
 def upgrade_schema(engine: Engine) -> None:
     with engine.begin() as conn:
-        for name, values in ENUMS.items():
-            exists = conn.execute(text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name}).first()
-            if not exists:
-                conn.execute(text(f"CREATE TYPE {name} AS ENUM ({', '.join(repr(v) for v in values)})"))
-        for name, value in ENUM_VALUES:
-            exists = conn.execute(text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name}).first()
-            if exists:  # a new database gets the full type from create_all
-                conn.execute(text(f"ALTER TYPE {name} ADD VALUE IF NOT EXISTS '{value}'"))
-        for table, column, ddl in COLUMNS:
-            conn.execute(text(f"ALTER TABLE IF EXISTS {table} ADD COLUMN IF NOT EXISTS {column} {ddl}"))
+        upgrade_schema_on(conn)
+
+
+def upgrade_schema_on(conn: Connection) -> None:
+    for name, values in ENUMS.items():
+        exists = conn.execute(text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name}).first()
+        if not exists:
+            conn.execute(text(f"CREATE TYPE {name} AS ENUM ({', '.join(repr(v) for v in values)})"))
+    for name, value in ENUM_VALUES:
+        exists = conn.execute(text("SELECT 1 FROM pg_type WHERE typname = :n"), {"n": name}).first()
+        if exists:  # a type the database does not have yet is created whole later
+            conn.execute(text(f"ALTER TYPE {name} ADD VALUE IF NOT EXISTS '{value}'"))
+    for table, column, ddl in COLUMNS:
+        conn.execute(text(f"ALTER TABLE IF EXISTS {table} ADD COLUMN IF NOT EXISTS {column} {ddl}"))

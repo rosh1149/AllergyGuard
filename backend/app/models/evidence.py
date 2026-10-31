@@ -2,7 +2,7 @@
 
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Index, JSON, DateTime, ForeignKey, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -37,6 +37,8 @@ class Assessment(Base):
     Belongs to the customer who ran it (their history). Holds no photos."""
 
     __tablename__ = "assessments"
+    # Administrators list recent checks of one kind (e.g. the slowest packaged-product checks).
+    __table_args__ = (Index("ix_assessments_kind_created_at", "kind", "created_at"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
